@@ -8,7 +8,7 @@ export interface Vendor {
   id: string;
   user_id: string;
   vendor_name: string | null;
-  branch: string | null;
+  category: string | null;
   image1: string | null;
   address: string | null;
   created_at: string;
@@ -124,7 +124,7 @@ export async function getAllVendors(): Promise<Vendor[]> {
 export async function upsertVendor(vendorData: {
   user_id: string;
   vendor_name?: string;
-  branch?: string;
+  category?: string;
   address?: string;
   image1?: string | null;
 }): Promise<Vendor | null> {
@@ -140,7 +140,7 @@ export async function upsertVendor(vendorData: {
         .from('vendors')
         .update({
           vendor_name: vendorData.vendor_name ?? existingVendor.vendor_name,
-          branch: vendorData.branch ?? existingVendor.branch,
+          category: vendorData.category ?? existingVendor.category,
           address: vendorData.address ?? existingVendor.address,
           image1: vendorData.image1 !== undefined ? vendorData.image1 : existingVendor.image1,
           updated_at: new Date().toISOString(),
@@ -158,7 +158,7 @@ export async function upsertVendor(vendorData: {
         .insert({
           user_id: vendorData.user_id,
           vendor_name: vendorData.vendor_name || null,
-          branch: vendorData.branch || null,
+          category: vendorData.category || null,
           address: vendorData.address || null,
           image1: vendorData.image1 || null,
         })
@@ -246,22 +246,22 @@ export async function getVendorByName(vendorName: string): Promise<Vendor | null
 }
 
 // Get vendors by branch
-export async function getVendorsByBranch(branch: string): Promise<Vendor[]> {
+export async function getVendorsByCategory(category: string): Promise<Vendor[]> {
   try {
     const { data: vendors, error } = await supabase
       .from('vendors')
       .select('*')
-      .ilike('branch', `%${branch}%`)
+      .ilike('category', `%${category}%`)
       .order('vendor_name', { ascending: true });
 
     if (error) {
-      console.error("Error fetching vendors by branch:", error);
+      console.error("Error fetching vendors by category:", error);
       return [];
     }
 
     return vendors as Vendor[];
   } catch (error) {
-    console.error("Unexpected error fetching vendors by branch:", error);
+    console.error("Unexpected error fetching vendors by category:", error);
     return [];
   }
 }

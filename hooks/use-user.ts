@@ -23,7 +23,7 @@ export interface Vendor {
   id: string;
   user_id: string;
   vendor_name: string | null;
-  branch: string | null;
+  category: string | null;
   image1: string | null;
   address: string | null;
   created_at: string;
@@ -119,7 +119,7 @@ const vendorApi = {
       .from('vendors')
       .update({
         vendor_name: data.vendor_name,
-        branch: data.branch,
+        category: data.category,
         address: data.address,
       })
       .eq('user_id', user.id)
@@ -130,7 +130,7 @@ const vendorApi = {
     return vendor as Vendor;
   },
 
-  createVendor: async (data: { vendor_name: string; branch: string; address: string }): Promise<Vendor> => {
+  createVendor: async (data: { vendor_name: string; category: string; address: string }): Promise<Vendor> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("No user found");
 
@@ -139,7 +139,7 @@ const vendorApi = {
       .insert({
         user_id: user.id,
         vendor_name: data.vendor_name,
-        branch: data.branch,
+        category: data.category,
         address: data.address,
         image1: null,
       })
