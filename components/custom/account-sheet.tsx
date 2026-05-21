@@ -60,7 +60,7 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
     lastName: user?.last_name || "",
     phone: user?.phone || "",
     address: vendor?.address || "",
-    vendorImage: vendor?.vendor_image || "",
+    vendorImage: vendor?.image1 || "",
   })
 
   // Handle image upload to Supabase bucket
@@ -112,7 +112,7 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
         if (vendor?.id) {
           const { error: updateError } = await supabase
             .from("vendors")
-            .update({ vendor_image: publicUrl })
+            .update({ image1: publicUrl })
             .eq("id", vendor.id)
 
           if (updateError) throw updateError
@@ -152,22 +152,18 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
         fieldName === "address"
       ) {
         // Update or create vendor
+        const vendorData = {
+          vendor_name:
+            fieldName === "vendorName" ? newValue : values.vendorName,
+          category:
+            fieldName === "businessCategory" ? newValue : values.businessCategory,
+          address: fieldName === "address" ? newValue : values.address,
+        }
+
         if (vendor?.id) {
-          updateVendor({
-            vendor_name:
-              fieldName === "vendorName" ? newValue : values.vendorName,
-            category:
-              fieldName === "businessCategory" ? newValue : values.businessCategory,
-            address: fieldName === "address" ? newValue : values.address,
-          })
+          updateVendor(vendorData)
         } else {
-          createVendor({
-            vendor_name:
-              fieldName === "vendorName" ? newValue : values.vendorName,
-            category:
-              fieldName === "businessCategory" ? newValue : values.businessCategory,
-            address: fieldName === "address" ? newValue : values.address,
-          })
+          createVendor(vendorData)
         }
         toast.success("Business information updated")
       }
