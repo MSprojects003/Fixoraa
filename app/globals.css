@@ -1,3 +1,4 @@
+/* app/globals.css - Complete fixed version */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -80,6 +81,8 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 4rem;
 }
 
 .dark {
@@ -114,16 +117,51 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 4rem;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
+  }
   html {
     @apply font-sans;
-    }
+  }
+}
+
+/* Responsive adjustments for sidebar */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 80vw;
+    --sidebar-width-mobile: 80vw;
+  }
+}
+
+/* Smooth transitions for sidebar */
+.transition-sidebar {
+  transition: left 0.3s ease-in-out, width 0.3s ease-in-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground);
 }
