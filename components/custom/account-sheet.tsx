@@ -48,7 +48,6 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const vendorImageInputRef = useRef<HTMLInputElement>(null)
-  const branchImageInputRef = useRef<HTMLInputElement>(null)
 
   // Editable states
   const [editingField, setEditingField] = useState<string | null>(null)
@@ -56,13 +55,12 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
     profileImage: user?.profile_image || "",
     email: user?.email || "",
     vendorName: vendor?.vendor_name || "",
-    businessCategory: vendor?.branch || "",
+    businessCategory: vendor?.category || "",
     firstName: user?.first_name || "",
     lastName: user?.last_name || "",
     phone: user?.phone || "",
     address: vendor?.address || "",
     vendorImage: vendor?.vendor_image || "",
-    branchImage: vendor?.branch_image || "",
   })
 
   // Handle image upload to Supabase bucket
@@ -110,21 +108,16 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
           if (updateError) throw updateError
         }
         setValues((prev) => ({ ...prev, profileImage: publicUrl }))
-      } else if (fieldName === "vendor" || fieldName === "branch") {
+      } else if (fieldName === "vendor") {
         if (vendor?.id) {
           const { error: updateError } = await supabase
             .from("vendors")
-            .update({ [dbColumnName]: publicUrl })
+            .update({ vendor_image: publicUrl })
             .eq("id", vendor.id)
 
           if (updateError) throw updateError
         }
-
-        if (fieldName === "vendor") {
-          setValues((prev) => ({ ...prev, vendorImage: publicUrl }))
-        } else {
-          setValues((prev) => ({ ...prev, branchImage: publicUrl }))
-        }
+        setValues((prev) => ({ ...prev, vendorImage: publicUrl }))
       }
 
       toast.dismiss()
@@ -163,7 +156,7 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
           updateVendor({
             vendor_name:
               fieldName === "vendorName" ? newValue : values.vendorName,
-            branch:
+            category:
               fieldName === "businessCategory" ? newValue : values.businessCategory,
             address: fieldName === "address" ? newValue : values.address,
           })
@@ -171,7 +164,7 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
           createVendor({
             vendor_name:
               fieldName === "vendorName" ? newValue : values.vendorName,
-            branch:
+            category:
               fieldName === "businessCategory" ? newValue : values.businessCategory,
             address: fieldName === "address" ? newValue : values.address,
           })
@@ -317,13 +310,13 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                 <label className="text-xs font-semibold text-muted-foreground">
                   Business Category
                 </label>
-                {editingField === "businessCategory" ? (
+                {!values.businessCategory ? (
                   <Select value={values.businessCategory} onValueChange={(val) => {
                     setValues((prev) => ({ ...prev, businessCategory: val }))
                     handleFieldBlur("businessCategory", val)
                   }}>
                     <SelectTrigger className="border-primary/30">
-                      <SelectValue />
+                      <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
                       {businessCategories.map((cat) => (
@@ -334,12 +327,12 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div
-                    onClick={() => setEditingField("businessCategory")}
-                    className="cursor-pointer rounded-md p-2 transition-colors hover:bg-muted"
-                  >
+                  <div className="rounded-md p-2 bg-muted/50">
                     <p className="text-sm text-foreground">
-                      {businessCategories.find((c) => c.value === values.businessCategory)?.label || "Select category"}
+                      {businessCategories.find((c) => c.value === values.businessCategory)?.label || values.businessCategory}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      (Cannot be changed after creation)
                     </p>
                   </div>
                 )}
@@ -452,45 +445,6 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                   className="hidden"
                 />
                 <p className="text-xs text-muted-foreground">Click to upload vendor image</p>
-              </div>
-            </div>
-
-            {/* Branch Image */}
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">
-                Branch Image
-              </label>
-              <div className="flex items-center gap-3 mt-2">
-                {values.branchImage ? (
-                  <div className="relative group">
-                    <img
-                      src={values.branchImage}
-                      alt="Branch"
-                      className="h-20 w-20 rounded-md object-cover border-2 border-primary/20"
-                    />
-                    <button
-                      onClick={() => branchImageInputRef.current?.click()}
-                      className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Edit2 className="h-5 w-5 text-white" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => branchImageInputRef.current?.click()}
-                    className="h-20 w-20 rounded-md border-2 border-dashed border-primary/30 flex items-center justify-center hover:bg-muted transition-colors"
-                  >
-                    <Plus className="h-6 w-6 text-primary/50" />
-                  </button>
-                )}
-                <input
-                  ref={branchImageInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, "branch-images", "branch", "branch_image")}
-                  className="hidden"
-                />
-                <p className="text-xs text-muted-foreground">Click to upload branch image</p>
               </div>
             </div>
           </div>
