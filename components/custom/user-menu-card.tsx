@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { AccountSheet } from "@/components/custom/account-sheet";
 
 interface UserMenuCardProps {
   onNavigate?: (path: string) => void;
@@ -30,6 +31,7 @@ export function UserMenuCard({ onNavigate, onSignOut, user, vendor }: UserMenuCa
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [authAvatarUrl, setAuthAvatarUrl] = useState<string | null>(null);
+  const [isAccountSheetOpen, setIsAccountSheetOpen] = useState(false);
   const supabase = createClient();
 
   // Fetch Supabase auth user avatar on mount
@@ -168,7 +170,9 @@ export function UserMenuCard({ onNavigate, onSignOut, user, vendor }: UserMenuCa
           <button
             key={index}
             onClick={() => {
-              if (onNavigate) {
+              if (item.label === "Account") {
+                setIsAccountSheetOpen(true);
+              } else if (onNavigate) {
                 onNavigate(item.path);
               } else {
                 router.push(item.path);
@@ -204,6 +208,9 @@ export function UserMenuCard({ onNavigate, onSignOut, user, vendor }: UserMenuCa
           )}
         </button>
       </div>
+
+      {/* Account Sheet */}
+      <AccountSheet isOpen={isAccountSheetOpen} onOpenChange={setIsAccountSheetOpen} />
     </Card>
   );
 }

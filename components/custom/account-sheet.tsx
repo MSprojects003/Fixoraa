@@ -25,7 +25,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useCurrentUser, useUpdateProfile, useUpdateVendor, useCreateVendor, useVendor } from "@/hooks/use-user"
 
 interface AccountSheetProps {
-  open: boolean
+  isOpen: boolean
   onOpenChange: (open: boolean) => void
 }
 
@@ -38,7 +38,7 @@ const businessCategories = [
   { value: "other", label: "Other" },
 ]
 
-export function AccountSheet({ open, onOpenChange }: AccountSheetProps) {
+export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
   const supabase = createClient()
   const { data: user, isLoading: userLoading } = useCurrentUser()
   const { data: vendor } = useVendor()
@@ -205,7 +205,7 @@ export function AccountSheet({ open, onOpenChange }: AccountSheetProps) {
 
   if (userLoading) {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={isOpen} onOpenChange={onOpenChange}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
           <div className="flex items-center justify-center py-8">
             <p className="text-muted-foreground">Loading...</p>
@@ -216,7 +216,7 @@ export function AccountSheet({ open, onOpenChange }: AccountSheetProps) {
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Account Settings</SheetTitle>
