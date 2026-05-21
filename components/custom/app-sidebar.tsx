@@ -33,7 +33,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserMenuCard } from "@/components/custom/profile-dialog";
+import { UserMenuCard } from "@/components/custom/user-menu-card";
 import logoImage from "@/app/assets/logo/logo.png";
 import { useCurrentUser, useVendor } from "@/hooks/use-user";
 
