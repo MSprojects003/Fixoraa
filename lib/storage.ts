@@ -10,22 +10,7 @@ export async function uploadImageToBucket(
   try {
     console.log("[v0] Starting upload to bucket:", bucketName, "path:", filePath)
 
-    // Check if bucket exists
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets()
-    
-    if (listError) {
-      console.error("[v0] Error listing buckets:", listError)
-      return { publicUrl: "", error: "Failed to list buckets" }
-    }
-
-    const bucketExists = buckets?.some((b) => b.name === bucketName)
-    console.log("[v0] Bucket exists:", bucketExists, "Available buckets:", buckets?.map((b) => b.name))
-
-    if (!bucketExists) {
-      return { publicUrl: "", error: `Bucket "${bucketName}" not found` }
-    }
-
-    // Upload file
+    // Upload file directly - Supabase will return error if bucket doesn't exist
     const { data, error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, { upsert: true })
