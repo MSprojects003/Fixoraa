@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { Edit2, Plus } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { uploadImageToBucket } from "@/lib/storage"
 import { useCurrentUser, useUpdateProfile, useUpdateVendor, useCreateVendor, useVendor } from "@/hooks/use-user"
 
 interface AccountSheetProps {
@@ -79,23 +80,26 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
     }
 
     try {
-      toast.loading("Uploading image...")
+      const loadingToast = toast.loading("Uploading image...")
 
       const fileExt = file.name.split(".").pop()
       const fileName = `${fieldName}-${user?.id}-${Date.now()}.${fileExt}`
       const filePath = `${fileName}`
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, { upsert: true })
+      // Upload using helper function
+      const { publicUrl, error } = await uploadImageToBucket(
+        file,
+        bucketName,
+        filePath
+      )
 
-      if (uploadError) throw uploadError
+      if (error) {
+        throw new Error(error)
+      }
 
-      // Get public URL
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from(bucketName).getPublicUrl(filePath)
+      if (!publicUrl) {
+        throw new Error("Failed to get public URL")
+      }
 
       // Update appropriate table
       if (fieldName === "profile") {
@@ -120,12 +124,12 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
         setValues((prev) => ({ ...prev, vendorImage: publicUrl }))
       }
 
-      toast.dismiss()
+      toast.dismiss(loadingToast)
       toast.success("Image updated successfully")
     } catch (error) {
+      console.error("[v0] Error uploading image:", error)
       toast.dismiss()
-      console.error("Error uploading image:", error)
-      toast.error("Failed to upload image")
+      toast.error("Failed to upload image: " + (error instanceof Error ? error.message : "Unknown error"))
     }
   }
 
