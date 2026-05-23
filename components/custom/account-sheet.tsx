@@ -286,7 +286,7 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleImageUpload(e, "profile-images", "profile", "profile_image")}
+                onChange={(e) => handleImageUpload(e, "profile_images", "profile", "profile_image")}
                 className="hidden"
               />
             </div>
@@ -441,7 +441,7 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                   ref={vendorImageInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleImageUpload(e, "vendor-images", "vendor", "vendor_image")}
+                  onChange={(e) => handleImageUpload(e, "vendor_images", "vendor", "image1")}
                   className="hidden"
                 />
                 <p className="text-xs text-muted-foreground">Click to upload vendor image</p>
