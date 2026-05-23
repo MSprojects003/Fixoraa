@@ -165,9 +165,19 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
         }
 
         if (vendor?.id) {
-          updateVendor(vendorData)
+          console.log("[v0] Updating vendor:", vendor.id, vendorData)
+          updateVendor(vendorData, {
+            onError: (error) => {
+              console.error("[v0] Vendor update failed:", error)
+            },
+          })
         } else {
-          createVendor(vendorData)
+          console.log("[v0] Creating new vendor:", vendorData)
+          createVendor(vendorData, {
+            onError: (error) => {
+              console.error("[v0] Vendor create failed:", error)
+            },
+          })
         }
         toast.success("Business information updated")
       }

@@ -132,7 +132,13 @@ const vendorApi = {
 
   createVendor: async (data: { vendor_name: string; category: string; address: string }): Promise<Vendor> => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("No user found");
+    if (!user) {
+      console.error("[v0] No authenticated user found for vendor creation");
+      throw new Error("No user found - please log in");
+    }
+
+    console.log("[v0] Creating vendor for user:", user.id);
+    console.log("[v0] Vendor data:", data);
 
     const { data: vendor, error } = await supabase
       .from('vendors')
@@ -146,7 +152,18 @@ const vendorApi = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[v0] Vendor create error details:", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        statusCode: error.statusCode,
+      });
+      throw error;
+    }
+    
+    console.log("[v0] Vendor created successfully:", vendor);
     return vendor as Vendor;
   },
 };
