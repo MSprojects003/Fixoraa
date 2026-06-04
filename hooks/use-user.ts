@@ -48,18 +48,39 @@ export const userKeys = {
 // User API functions (internal)
 const userApi = {
   getCurrentUser: async (): Promise<User | null> => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return null;
     
     const { data: userData, error } = await supabase
       .from('users')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', authUser.id)
       .single();
     
-    if (error) {
-      console.error("Error fetching user:", error);
-      return null;
+    // If no user record in database, create one from auth metadata
+    if (error || !userData) {
+      console.log("[v0] No user record found, creating from auth metadata");
+      
+      // Extract name from Google OAuth metadata
+      const fullName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || "";
+      const nameParts = fullName.split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+      
+      // Return user object with auth data
+      return {
+        id: authUser.id,
+        first_name: firstName,
+        last_name: lastName,
+        email: authUser.email || "",
+        phone: authUser.phone || null,
+        profile_image: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
+        is_vendor: false,
+        is_customer: true,
+        is_deleted: false,
+        created_at: authUser.created_at,
+        updated_at: authUser.updated_at,
+      } as User;
     }
     
     return userData as User;
