@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -63,6 +63,24 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
     address: vendor?.address || "",
     vendorImage: vendor?.image1 || "",
   })
+
+  // Sync values when user/vendor data loads
+  useEffect(() => {
+    if (user || vendor) {
+      setValues({
+        profileImage: user?.profile_image || "",
+        email: user?.email || "",
+        vendorName: vendor?.vendor_name || "",
+        businessCategory: vendor?.category || "",
+        firstName: user?.first_name || "",
+        lastName: user?.last_name || "",
+        phone: user?.phone || "",
+        address: vendor?.address || "",
+        vendorImage: vendor?.image1 || "",
+      })
+      console.log("[v0] Updated values with user data:", { user, vendor })
+    }
+  }, [user?.id, user?.first_name, user?.last_name, user?.phone, user?.email, user?.profile_image, vendor?.vendor_name, vendor?.category, vendor?.address, vendor?.image1])
 
   // Handle image upload to Supabase bucket
   const handleImageUpload = async (
