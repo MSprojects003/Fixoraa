@@ -20,7 +20,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { Edit2, Plus, Mail, MapPin, Building2 } from "lucide-react"
+import { Plus, Mail, MapPin, Building2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { uploadImageToBucket } from "@/lib/storage"
 import { useCurrentUser, useUpdateProfile, useUpdateVendor, useCreateVendor, useVendor } from "@/hooks/use-user"
@@ -250,11 +250,10 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
     return (
       <div
         onClick={() => setEditingField(fieldName)}
-        className="flex items-center gap-3 rounded-lg border border-border/30 bg-muted/30 px-3 py-2.5 cursor-pointer hover:bg-muted/50 hover:border-border/50 transition-all duration-200 group"
+        className="flex items-center gap-3 rounded-lg border border-border/30 bg-muted/30 px-3 py-2.5 cursor-pointer hover:bg-muted/50 hover:border-border/50 transition-all duration-200"
       >
-        {Icon && <Icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />}
+        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
         <p className="text-sm text-foreground flex-1">{value || "Click to add"}</p>
-        <Edit2 className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
     )
   }
@@ -300,23 +299,23 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
         </SheetHeader>
 
         <div className="space-y-8">
-          {/* Profile Header Card */}
-          <div className="relative rounded-lg border border-border/50 bg-gradient-to-br from-muted/30 to-muted/10 p-6">
-            <div className="flex items-start gap-6">
-              {/* Profile Avatar */}
-              <div className="relative group shrink-0">
-                <Avatar className="h-24 w-24 border-3 border-background shadow-lg">
+          {/* Profile Header Card - Vendor Focused */}
+          <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-primary/5 via-muted/20 to-muted/10 p-8">
+            <div className="flex flex-col items-center text-center gap-6">
+              {/* Large Profile Avatar */}
+              <div className="relative group">
+                <Avatar className="h-32 w-32 border-4 border-background shadow-xl">
                   <AvatarImage src={values.profileImage || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-xl font-bold text-primary">
+                  <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-3xl font-bold text-primary">
                     {getInitials()}
                   </AvatarFallback>
                 </Avatar>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 rounded-full bg-primary text-primary-foreground shadow-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  className="absolute bottom-0 right-0 rounded-full bg-primary text-primary-foreground shadow-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                   title="Change profile image"
                 >
-                  <Edit2 className="h-4 w-4" />
+                  <Plus className="h-5 w-5" />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -327,21 +326,19 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                 />
               </div>
 
-              {/* Profile Info */}
-              <div className="flex-1 pt-2">
-                <h3 className="text-lg font-semibold text-foreground">
-                  {values.firstName || values.lastName 
-                    ? `${values.firstName} ${values.lastName}` 
-                    : "Complete your profile"}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+              {/* Vendor Name - Main Focus */}
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold text-foreground">
+                  {values.vendorName || "Business Name"}
+                </h2>
+                <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
                   <Mail className="h-4 w-4" />
                   {values.email}
                 </p>
-                {values.vendorName && (
-                  <p className="text-sm text-primary font-medium mt-3 flex items-center gap-2">
+                {values.businessCategory && (
+                  <p className="text-sm text-primary font-medium mt-2 flex items-center justify-center gap-2">
                     <Building2 className="h-4 w-4" />
-                    {values.vendorName}
+                    {businessCategories.find((c) => c.value === values.businessCategory)?.label || values.businessCategory}
                   </p>
                 )}
               </div>
@@ -459,57 +456,60 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                 />
               </div>
 
-              {/* Vendor Image */}
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
-                  Business Image
-                </label>
-                <div className="flex items-center gap-4">
-                  {values.vendorImage ? (
-                    <div className="relative group">
-                      <img
-                        src={values.vendorImage}
-                        alt="Vendor"
-                        className="h-24 w-24 rounded-lg object-cover border-2 border-border/50 shadow-sm"
-                      />
-                      <button
-                        onClick={() => vendorImageInputRef.current?.click()}
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      >
-                        <Edit2 className="h-5 w-5 text-white" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => vendorImageInputRef.current?.click()}
-                      className="h-24 w-24 rounded-lg border-2 border-dashed border-primary/30 flex items-center justify-center hover:bg-muted/50 hover:border-primary/50 transition-all duration-200 bg-muted/20"
-                    >
-                      <Plus className="h-6 w-6 text-primary/60" />
-                    </button>
-                  )}
-                  <input
-                    ref={vendorImageInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e, "vendor_images", "vendor", "image1")}
-                    className="hidden"
+          {/* Vendor Image - After Business Section */}
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">
+              Business Image
+            </label>
+            <div className="flex items-center gap-4">
+              {values.vendorImage ? (
+                <div className="relative group">
+                  <img
+                    src={values.vendorImage}
+                    alt="Vendor"
+                    className="h-28 w-28 rounded-lg object-cover border-2 border-border/50 shadow-md"
                   />
-                  <div className="text-xs text-muted-foreground">
-                    <p className="font-medium text-foreground">Upload business image</p>
-                    <p className="mt-1">Recommended size: 1200x800px</p>
-                  </div>
+                  <button
+                    onClick={() => vendorImageInputRef.current?.click()}
+                    className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  >
+                    <Plus className="h-6 w-6 text-white" />
+                  </button>
                 </div>
+              ) : (
+                <button
+                  onClick={() => vendorImageInputRef.current?.click()}
+                  className="h-28 w-28 rounded-lg border-2 border-dashed border-primary/30 flex items-center justify-center hover:bg-muted/50 hover:border-primary/50 transition-all duration-200 bg-muted/20"
+                >
+                  <Plus className="h-7 w-7 text-primary/60" />
+                </button>
+              )}
+              <input
+                ref={vendorImageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, "vendor_images", "vendor", "image1")}
+                className="hidden"
+              />
+              <div className="text-xs text-muted-foreground">
+                <p className="font-medium text-foreground">Upload business image</p>
+                <p className="mt-2">Recommended size: 1200x800px</p>
+                <p className="mt-1">This image represents your business</p>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Action Button */}
-          <Button
-            onClick={() => onOpenChange(false)}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-11 font-medium rounded-lg"
-          >
-            Done
-          </Button>
+        {/* Footer - Vendor Name Again */}
+        <div className="border-t border-border/30 mt-8 pt-6">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Business</p>
+          <p className="text-lg font-semibold text-foreground mt-2">{values.vendorName || "Your Business Name"}</p>
+          {values.address && (
+            <p className="text-sm text-muted-foreground mt-2 flex items-start gap-2">
+              <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              {values.address}
+            </p>
+          )}
         </div>
       </SheetContent>
     </Sheet>
