@@ -20,7 +20,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { Edit2, Plus } from "lucide-react"
+import { Edit2, Plus, Mail, MapPin, Building2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { uploadImageToBucket } from "@/lib/storage"
 import { useCurrentUser, useUpdateProfile, useUpdateVendor, useCreateVendor, useVendor } from "@/hooks/use-user"
@@ -222,10 +222,12 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
     value,
     fieldName,
     isEditing,
+    icon: Icon,
   }: {
     value: string
     fieldName: string
     isEditing: boolean
+    icon?: any
   }) => {
     if (isEditing) {
       return (
@@ -239,7 +241,7 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
               handleFieldBlur(fieldName, value)
             }
           }}
-          className="border-primary/30 focus-visible:border-primary"
+          className="border border-input/50 focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/20"
           placeholder={fieldName}
         />
       )
@@ -248,9 +250,11 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
     return (
       <div
         onClick={() => setEditingField(fieldName)}
-        className="cursor-pointer rounded-md p-2 transition-colors hover:bg-muted"
+        className="flex items-center gap-3 rounded-lg border border-border/30 bg-muted/30 px-3 py-2.5 cursor-pointer hover:bg-muted/50 hover:border-border/50 transition-all duration-200 group"
       >
-        <p className="text-sm text-foreground">{value || "Click to add"}</p>
+        {Icon && <Icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />}
+        <p className="text-sm text-foreground flex-1">{value || "Click to add"}</p>
+        <Edit2 className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
     )
   }
@@ -259,31 +263,24 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
   if (userLoading || vendorLoading) {
     return (
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
-          <div className="space-y-6 py-6">
-            {/* Profile section skeleton */}
-            <div className="flex items-start gap-4">
-              <Skeleton className="h-24 w-24 rounded-full" />
-              <div className="flex-1 space-y-3">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+          <div className="space-y-8 py-6">
+            {/* Header skeleton */}
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-20 w-20 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-40" />
                 <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-40" />
               </div>
             </div>
 
-            {/* Personal info skeleton */}
-            <div className="space-y-4">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-
-            {/* Business info skeleton */}
-            <div className="space-y-4">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-24 w-full" />
-            </div>
+            {/* Cards skeleton */}
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ))}
           </div>
         </SheetContent>
       </Sheet>
@@ -292,55 +289,133 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
-        <SheetHeader className="pb-4">
-          <SheetTitle className="text-2xl">{vendor?.vendor_name || "Account Settings"}</SheetTitle>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-2xl bg-background">
+        <SheetHeader className="border-b border-border/30 pb-6 mb-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <SheetTitle className="text-2xl font-bold text-foreground">Account Settings</SheetTitle>
+              <p className="text-sm text-muted-foreground mt-1">Manage your profile and business information</p>
+            </div>
+          </div>
         </SheetHeader>
 
-        <div className="space-y-6 py-2 px-2">
-          {/* Profile & Vendor Info Section */}
-          <div className="flex items-start justify-between gap-6">
-            {/* Profile Image */}
-            <div className="relative group">
-              <Avatar className="h-28 w-28 border-2 border-primary/20">
-                <AvatarImage src={values.profileImage || undefined} />
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-2xl font-semibold text-primary">
-                  {getInitials()}
-                </AvatarFallback>
-              </Avatar>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-1 right-1 rounded-full bg-primary p-2 text-primary-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                title="Change profile image"
-              >
-                <Edit2 className="h-4 w-4" />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e, "profile_images", "profile", "profile_image")}
-                className="hidden"
-              />
+        <div className="space-y-8">
+          {/* Profile Header Card */}
+          <div className="relative rounded-lg border border-border/50 bg-gradient-to-br from-muted/30 to-muted/10 p-6">
+            <div className="flex items-start gap-6">
+              {/* Profile Avatar */}
+              <div className="relative group shrink-0">
+                <Avatar className="h-24 w-24 border-3 border-background shadow-lg">
+                  <AvatarImage src={values.profileImage || undefined} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-xl font-bold text-primary">
+                    {getInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 rounded-full bg-primary text-primary-foreground shadow-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  title="Change profile image"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, "profile_images", "profile", "profile_image")}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Profile Info */}
+              <div className="flex-1 pt-2">
+                <h3 className="text-lg font-semibold text-foreground">
+                  {values.firstName || values.lastName 
+                    ? `${values.firstName} ${values.lastName}` 
+                    : "Complete your profile"}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  {values.email}
+                </p>
+                {values.vendorName && (
+                  <p className="text-sm text-primary font-medium mt-3 flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    {values.vendorName}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Personal Information Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1 bg-primary rounded-full" />
+              <h4 className="font-semibold text-foreground text-sm uppercase tracking-wider">Personal Information</h4>
             </div>
 
-            {/* Vendor Name and Category */}
-            <div className="flex-1 space-y-2">
+            <div className="grid gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
+                  First Name
+                </label>
+                <EditableField
+                  value={values.firstName}
+                  fieldName="firstName"
+                  isEditing={editingField === "firstName"}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
+                  Last Name
+                </label>
+                <EditableField
+                  value={values.lastName}
+                  fieldName="lastName"
+                  isEditing={editingField === "lastName"}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
+                  Phone Number
+                </label>
+                <EditableField
+                  value={values.phone}
+                  fieldName="phone"
+                  isEditing={editingField === "phone"}
+                  icon={Edit2}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Business Information Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1 bg-primary rounded-full" />
+              <h4 className="font-semibold text-foreground text-sm uppercase tracking-wider">Business Information</h4>
+            </div>
+
+            <div className="grid gap-4">
               {/* Vendor Name */}
               <div>
-                <label className="text-xs font-semibold text-muted-foreground">
-                  Vendor Name
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
+                  Business Name
                 </label>
                 <EditableField
                   value={values.vendorName}
                   fieldName="vendorName"
                   isEditing={editingField === "vendorName"}
+                  icon={Building2}
                 />
               </div>
 
               {/* Business Category */}
               <div>
-                <label className="text-xs font-semibold text-muted-foreground">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
                   Business Category
                 </label>
                 {!values.businessCategory ? (
@@ -348,8 +423,8 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                     setValues((prev) => ({ ...prev, businessCategory: val }))
                     handleFieldBlur("businessCategory", val)
                   }}>
-                    <SelectTrigger className="border-primary/30">
-                      <SelectValue placeholder="Select category" />
+                    <SelectTrigger className="border border-input/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20">
+                      <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
                       {businessCategories.map((cat) => (
@@ -360,136 +435,80 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div className="rounded-md p-2 bg-muted/50">
-                    <p className="text-sm text-foreground">
+                  <div className="rounded-lg border border-border/30 bg-muted/30 px-3 py-2.5">
+                    <p className="text-sm font-medium text-foreground">
                       {businessCategories.find((c) => c.value === values.businessCategory)?.label || values.businessCategory}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      (Cannot be changed after creation)
+                      Cannot be changed after creation
                     </p>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* Personal Information Section */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">
-              Personal Information
-            </h3>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">
-                Email
-              </label>
-              <div className="rounded-md p-2 bg-muted/50">
-                <p className="text-sm text-foreground">{values.email}</p>
+              {/* Address */}
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
+                  Business Address
+                </label>
+                <EditableField
+                  value={values.address}
+                  fieldName="address"
+                  isEditing={editingField === "address"}
+                  icon={MapPin}
+                />
               </div>
-            </div>
 
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">
-                First Name
-              </label>
-              <EditableField
-                value={values.firstName}
-                fieldName="firstName"
-                isEditing={editingField === "firstName"}
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">
-                Last Name
-              </label>
-              <EditableField
-                value={values.lastName}
-                fieldName="lastName"
-                isEditing={editingField === "lastName"}
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">
-                Phone
-              </label>
-              <EditableField
-                value={values.phone}
-                fieldName="phone"
-                isEditing={editingField === "phone"}
-              />
-            </div>
-          </div>
-
-          <Separator className="bg-border/50" />
-
-          {/* Business Information Section */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">
-              Business Information
-            </h3>
-
-            {/* Address */}
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">
-                Address
-              </label>
-              <EditableField
-                value={values.address}
-                fieldName="address"
-                isEditing={editingField === "address"}
-              />
-            </div>
-
-            {/* Vendor Image */}
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">
-                Vendor Image
-              </label>
-              <div className="flex items-center gap-3 mt-2">
-                {values.vendorImage ? (
-                  <div className="relative group">
-                    <img
-                      src={values.vendorImage}
-                      alt="Vendor"
-                      className="h-20 w-20 rounded-md object-cover border-2 border-primary/20"
-                    />
+              {/* Vendor Image */}
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
+                  Business Image
+                </label>
+                <div className="flex items-center gap-4">
+                  {values.vendorImage ? (
+                    <div className="relative group">
+                      <img
+                        src={values.vendorImage}
+                        alt="Vendor"
+                        className="h-24 w-24 rounded-lg object-cover border-2 border-border/50 shadow-sm"
+                      />
+                      <button
+                        onClick={() => vendorImageInputRef.current?.click()}
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      >
+                        <Edit2 className="h-5 w-5 text-white" />
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       onClick={() => vendorImageInputRef.current?.click()}
-                      className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-24 w-24 rounded-lg border-2 border-dashed border-primary/30 flex items-center justify-center hover:bg-muted/50 hover:border-primary/50 transition-all duration-200 bg-muted/20"
                     >
-                      <Edit2 className="h-5 w-5 text-white" />
+                      <Plus className="h-6 w-6 text-primary/60" />
                     </button>
+                  )}
+                  <input
+                    ref={vendorImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e, "vendor_images", "vendor", "image1")}
+                    className="hidden"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground">Upload business image</p>
+                    <p className="mt-1">Recommended size: 1200x800px</p>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => vendorImageInputRef.current?.click()}
-                    className="h-20 w-20 rounded-md border-2 border-dashed border-primary/30 flex items-center justify-center hover:bg-muted transition-colors"
-                  >
-                    <Plus className="h-6 w-6 text-primary/50" />
-                  </button>
-                )}
-                <input
-                  ref={vendorImageInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, "vendor_images", "vendor", "image1")}
-                  className="hidden"
-                />
-                <p className="text-xs text-muted-foreground">Click to upload vendor image</p>
+                </div>
               </div>
             </div>
           </div>
-
-          <Separator className="bg-border/50" />
 
           {/* Action Button */}
           <Button
             onClick={() => onOpenChange(false)}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-11 font-medium rounded-lg"
           >
-            Close
+            Done
           </Button>
         </div>
       </SheetContent>
