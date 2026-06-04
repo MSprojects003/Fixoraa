@@ -498,18 +498,18 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer - Vendor Name Again */}
-        <div className="border-t border-border/30 mt-8 pt-6">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Business</p>
-          <p className="text-lg font-semibold text-foreground mt-2">{values.vendorName || "Your Business Name"}</p>
-          {values.address && (
-            <p className="text-sm text-muted-foreground mt-2 flex items-start gap-2">
-              <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              {values.address}
-            </p>
-          )}
+          {/* Footer - Vendor Name Again */}
+          <div className="border-t border-border/30 mt-8 pt-6">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Business</p>
+            <p className="text-lg font-semibold text-foreground mt-2">{values.vendorName || "Your Business Name"}</p>
+            {values.address && (
+              <p className="text-sm text-muted-foreground mt-2 flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                {values.address}
+              </p>
+            )}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
