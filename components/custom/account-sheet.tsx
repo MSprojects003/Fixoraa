@@ -82,74 +82,79 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
     }
   }, [user?.id, user?.first_name, user?.last_name, user?.phone, user?.email, user?.profile_image, vendor?.vendor_name, vendor?.category, vendor?.address, vendor?.image1])
 
-  // Handle image upload to Supabase bucket
   const handleImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    bucketName: string,
-    fieldName: string,
-    dbColumnName: string
-  ) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  e: React.ChangeEvent<HTMLInputElement>,
+  bucketName: string,
+  fieldName: string,
+  dbColumnName: string
+) => {
+  const file = e.target.files?.[0]
+  if (!file) return
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file")
-      return
-    }
-
-    try {
-      const loadingToast = toast.loading("Uploading image...")
-
-      const fileExt = file.name.split(".").pop()
-      const fileName = `${fieldName}-${user?.id}-${Date.now()}.${fileExt}`
-      const filePath = `${fileName}`
-
-      // Upload using helper function
-      const { publicUrl, error } = await uploadImageToBucket(
-        file,
-        bucketName,
-        filePath
-      )
-
-      if (error) {
-        throw new Error(error)
-      }
-
-      if (!publicUrl) {
-        throw new Error("Failed to get public URL")
-      }
-
-      // Update appropriate table
-      if (fieldName === "profile") {
-        if (user?.id) {
-          const { error: updateError } = await supabase
-            .from("users")
-            .update({ profile_image: publicUrl })
-            .eq("id", user.id)
-
-          if (updateError) throw updateError
-        }
-        setValues((prev) => ({ ...prev, profileImage: publicUrl }))
-      } else if (fieldName === "vendor") {
-        if (vendor?.id) {
-          const { error: updateError } = await supabase
-            .from("vendors")
-            .update({ image1: publicUrl })
-            .eq("id", vendor.id)
-
-          if (updateError) throw updateError
-        }
-        setValues((prev) => ({ ...prev, vendorImage: publicUrl }))
-      }
-
-      toast.dismiss(loadingToast)
-      toast.success("Image updated successfully")
-    } catch (error) {
-      console.error("[v0] Error uploading image:", error)
-      toast.dismiss()
-      toast.error("Failed to upload image: " + (error instanceof Error ? error.message : "Unknown error"))
-    }
+  if (!file.type.startsWith("image/")) {
+    toast.error("Please select an image file")
+    return
   }
+
+  if (!user?.id) {
+    toast.error("You must be logged in to upload")
+    return
+  }
+
+  try {
+    const loadingToast = toast.loading("Uploading image...")
+
+    const fileExt = file.name.split(".").pop() || "jpg"
+    const timestamp = Date.now()
+
+    // This structure matches your RLS policy
+    const filePath = `${user.id}/${fieldName}-${timestamp}.${fileExt}`
+
+    const { publicUrl, error } = await uploadImageToBucket(
+      file,
+      bucketName,
+      filePath
+    )
+
+    if (error) throw new Error(error)
+
+    if (!publicUrl) throw new Error("Failed to get public URL")
+
+    // Update database
+    if (fieldName === "profile") {
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ profile_image: publicUrl })
+        .eq("id", user.id)
+
+      if (updateError) throw updateError
+
+      setValues((prev) => ({ ...prev, profileImage: publicUrl }))
+    } 
+    else if (fieldName === "vendor") {
+      if (!vendor?.id) {
+        toast.error("Vendor not found")
+        return
+      }
+
+      const { error: updateError } = await supabase
+        .from("vendors")
+        .update({ image1: publicUrl })
+        .eq("id", vendor.id)
+
+      if (updateError) throw updateError
+
+      setValues((prev) => ({ ...prev, vendorImage: publicUrl }))
+    }
+
+    toast.dismiss(loadingToast)
+    toast.success("Image uploaded successfully!")
+  } catch (error: any) {
+    console.error("[v0] Upload error:", error)
+    toast.dismiss()
+    toast.error("Upload failed: " + (error.message || "Unknown error"))
+  }
+}
 
   // Handle field blur - update to database
   const handleFieldBlur = async (fieldName: string, newValue: string) => {

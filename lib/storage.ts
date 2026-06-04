@@ -1,3 +1,4 @@
+// lib/storage.ts
 import { createClient } from "@/lib/supabase/client"
 
 export async function uploadImageToBucket(
@@ -10,10 +11,12 @@ export async function uploadImageToBucket(
   try {
     console.log("[v0] Starting upload to bucket:", bucketName, "path:", filePath)
 
-    // Upload file directly - Supabase will return error if bucket doesn't exist
     const { data, error: uploadError } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, file, { upsert: true })
+      .upload(filePath, file, { 
+        cacheControl: '3600',
+        upsert: false   // Changed to false (safer with your current policy)
+      })
 
     if (uploadError) {
       console.error("[v0] Upload error:", uploadError)
