@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { calculateCommission, type PlanType, commissionRateFor } from '@/lib/reservation-commision';
+import crypto from 'crypto';
 
 export async function POST(request: Request) {
   try {
@@ -61,36 +62,29 @@ export async function POST(request: Request) {
 
     console.log(`[reservations/accept] Commission calculated: ${commissionAmount} (${commissionRatePercent}% of ${amount})`);
 
-    // 4. Generate PayHere payment data
+    // 4. Generate PayHere payment data with hash
     const orderId = `RSVPAY_${id}_${Date.now()}`;
     const merchantId = process.env.NEXT_PUBLIC_PAYHERE_MERCHANT_ID || process.env.PAYHERE_MERCHANT_ID;
+    const secret = process.env.PAYHERE_MERCHANT_SECRET;
     const currency = 'LKR';
     const formattedAmount = commissionAmount.toFixed(2);
 
     if (!merchantId) {
       console.error('[reservations/accept] PAYHERE_MERCHANT_ID not set');
-      return NextResponse.json({ error: 'Payment configuration error' }, { status: 500 });
+      return NextResponse.json({ error: 'PAYHERE_MERCHANT_ID missing' }, { status: 500 });
     }
 
-    // Call the hash endpoint to get consistent hash calculation
-    let hash = '';
-    try {
-      const hashRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/payment/hash`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ merchantId, orderId, amount: formattedAmount, currency }),
-      });
-      const hashData = await hashRes.json();
-      hash = hashData.hash || '';
-      
-      if (!hash) {
-        console.error('[reservations/accept] Hash generation failed:', hashData);
-        return NextResponse.json({ error: 'Hash generation error' }, { status: 500 });
-      }
-    } catch (hashErr) {
-      console.error('[reservations/accept] Hash fetch error:', hashErr);
-      return NextResponse.json({ error: 'Hash calculation error' }, { status: 500 });
+    if (!secret) {
+      console.error('[reservations/accept] PAYHERE_MERCHANT_SECRET not set');
+      return NextResponse.json({ error: 'PAYHERE_MERCHANT_SECRET missing' }, { status: 500 });
     }
+
+    // Generate hash directly (same logic as /api/payment/hash)
+    const hashedSecret = crypto.createHash('md5').update(secret).digest('hex').toUpperCase();
+    const hashInput = `${merchantId}${orderId}${formattedAmount}${currency}${hashedSecret}`;
+    const hash = crypto.createHash('md5').update(hashInput).digest('hex').toUpperCase();
+
+    console.log('[reservations/accept] Hash generated for order:', orderId);
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     
@@ -135,14 +129,24 @@ export async function POST(request: Request) {
       last_name: customer?.last_name || '',
       email: customer?.email || '',
       phone: customer?.phone || '',
-      
-      
+      address: customer?.address || '',
+      city: customer?.city || '',
+      country: customer?.country || '',
       custom_1: reservation.vendor_id,
       custom_2: id,
       hash,
     };
 
     console.log(`[reservations/accept] Payment prepared, order: ${orderId}, amount: ${formattedAmount}`);
+    console.log('[reservations/accept] PayHere data:', {
+      merchant_id: paymentData.merchant_id,
+      order_id: paymentData.order_id,
+      amount: paymentData.amount,
+      currency: paymentData.currency,
+      hash: paymentData.hash?.slice(0, 10) + '...',
+      first_name: paymentData.first_name,
+      email: paymentData.email,
+    });
 
     return NextResponse.json({
       success: true,
