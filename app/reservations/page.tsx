@@ -407,13 +407,10 @@ export default function ReservationPage() {
                 </TableBody>
               </Table>
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Fixed pagination bar */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          {/* Pagination bar inside card */}
+          <div className="border-t border-slate-200 bg-slate-50/50 px-4 py-3">
+            <div className="flex flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <span>
             Showing{" "}
             <span className="font-medium text-slate-700">
@@ -467,8 +464,10 @@ export default function ReservationPage() {
               Next
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
+            </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
       </div>
 
       {/* Details sheet — opened by the Eye action */}
