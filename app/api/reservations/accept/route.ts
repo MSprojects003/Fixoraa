@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { calculateCommission, type PlanType, COMMISSION_RATES } from '@/lib/reservation-commision';
+import { calculateCommission, type PlanType, commissionRateFor } from '@/lib/reservation-commision';
 import crypto from 'crypto';
 
 export async function POST(request: Request) {
@@ -57,9 +57,10 @@ export async function POST(request: Request) {
     const planType = (vendor?.subscription_type ?? 'basic') as PlanType;
     const amount = Number(finalVendorTotalAmount);
     const commissionAmount = calculateCommission(amount, planType);
-    const commissionRate = COMMISSION_RATES[planType] ?? 15;
+    const commissionRateDecimal = commissionRateFor(planType);
+    const commissionRatePercent = Math.round(commissionRateDecimal * 100);
 
-    console.log(`[reservations/accept] Commission calculated: ${commissionAmount} (${commissionRate}% of ${amount})`);
+    console.log(`[reservations/accept] Commission calculated: ${commissionAmount} (${commissionRatePercent}% of ${amount})`);
 
     // 4. Generate PayHere payment data
     const orderId = `RSVPAY_${id}_${Date.now()}`;
@@ -91,7 +92,7 @@ export async function POST(request: Request) {
         order_id: orderId,
         reservation_id: id,
         payment_details: {
-          commission_rate: commissionRate,
+          commission_rate: commissionRatePercent,
           total_reservation_amount: amount,
           vendor_id: reservation.vendor_id,
           plan_type: planType,
@@ -135,7 +136,7 @@ export async function POST(request: Request) {
       reservationId: id,
       orderId,
       commissionAmount,
-      commissionRate,
+      commissionRate: commissionRatePercent,
       paymentData,
     });
   } catch (error) {
