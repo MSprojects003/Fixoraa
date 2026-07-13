@@ -26,6 +26,8 @@ export async function POST(request: Request) {
     const data: Record<string, string> = {};
     form.forEach((value, key) => (data[key] = String(value)));
 
+    console.log('[notify] Full PayHere payload received:', data);
+
     const {
       merchant_id,
       order_id,
@@ -33,11 +35,23 @@ export async function POST(request: Request) {
       payhere_currency,
       status_code,
       md5sig,
+      payment_id,
+      custom_1,
+      custom_2,
     } = data;
+
+    console.log('[notify] Extracted data:', {
+      order_id,
+      status_code,
+      payment_id,
+      custom_1,
+      custom_2,
+      payhere_amount,
+    });
 
     const secret = process.env.PAYHERE_MERCHANT_SECRET;
     if (!secret) {
-      console.error('PAYHERE_MERCHANT_SECRET not set');
+      console.error('[notify] PAYHERE_MERCHANT_SECRET not set');
       return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
     }
 
@@ -46,9 +60,11 @@ export async function POST(request: Request) {
     );
 
     if (localSig !== md5sig) {
-      console.error('PayHere notify: signature mismatch', data);
+      console.error('[notify] Signature mismatch. Local:', localSig, 'Received:', md5sig);
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
+
+    console.log('[notify] Signature verified successfully');
 
     // Two kinds of payment share this one webhook — tell them apart by
     // the order_id prefix set when the payment was created:
@@ -163,37 +179,72 @@ async function handleReservationCommissionNotify(
     custom_2: reservationId,
   } = data;
 
+  console.log('[handleReservationCommissionNotify] Processing:', {
+    order_id,
+    status_code,
+    payment_id,
+    vendorId,
+    reservationId,
+  });
+
   if (status_code !== '2') {
-    // Payment failed/was cancelled at PayHere — leave the reservation
-    // as "pending" (its schedule/amount are already staged, so the
-    // vendor can just retry Accept without re-entering anything).
-    console.log('Reservation commission payment not successful:', { order_id, status_code });
+    console.warn('[handleReservationCommissionNotify] Payment not successful:', { order_id, status_code });
     return NextResponse.json({ received: true, status: status_code });
   }
 
-  const { data: vendor } = await supabase
+  // Verify reservation exists before updating
+  const { data: reservation, error: fetchError } = await supabase
+    .from('service_reservations')
+    .select('id, status')
+    .eq('id', reservationId)
+    .single();
+
+  if (fetchError || !reservation) {
+    console.error('[handleReservationCommissionNotify] Reservation not found:', { reservationId, fetchError });
+    return NextResponse.json({ error: 'Reservation not found' }, { status: 404 });
+  }
+
+  console.log('[handleReservationCommissionNotify] Reservation found:', { 
+    reservationId, 
+    currentStatus: reservation.status 
+  });
+
+  const { data: vendor, error: vendorError } = await supabase
     .from('vendors')
     .select('user_id, subscription_type')
     .eq('id', vendorId)
     .single();
 
-  console.log('[notify] Updating reservation to accepted:', {
+  if (vendorError) {
+    console.error('[handleReservationCommissionNotify] Vendor not found:', { vendorId, vendorError });
+  }
+
+  console.log('[handleReservationCommissionNotify] Updating reservation to accepted:', {
     reservationId,
     vendorId,
     paymentId: payment_id,
     amount: payhere_amount,
   });
 
-  const { error: reservationError } = await supabase
+  const { data: updateResult, error: reservationError } = await supabase
     .from('service_reservations')
     .update({ status: 'accepted' })
-    .eq('id', reservationId);
+    .eq('id', reservationId)
+    .select();
 
   if (reservationError) {
-    console.error('[notify] Failed to mark reservation accepted after payment:', reservationError);
-  } else {
-    console.log('[notify] Successfully updated reservation to accepted:', reservationId);
+    console.error('[handleReservationCommissionNotify] Failed to update reservation:', {
+      reservationId,
+      error: reservationError.message,
+      code: reservationError.code,
+    });
+    return NextResponse.json({ error: 'Failed to update reservation' }, { status: 500 });
   }
+
+  console.log('[handleReservationCommissionNotify] Successfully updated reservation:', {
+    reservationId,
+    updated: updateResult,
+  });
 
   const planType = (vendor?.subscription_type ?? 'basic') as PlanType;
   const commissionRateDecimal = commissionRateFor(planType);

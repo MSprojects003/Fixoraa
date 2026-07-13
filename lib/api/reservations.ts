@@ -198,6 +198,7 @@ export async function acceptReservation(
     const form = document.createElement("form");
     form.method = "POST";
     form.action = "https://sandbox.payhere.lk/pay/checkout";
+    form.target = "_blank"; // Open in new tab
     if (process.env.NEXT_PUBLIC_PAYHERE_ENV === "live") {
       form.action = "https://www.payhere.lk/pay/checkout";
     }
@@ -213,6 +214,9 @@ export async function acceptReservation(
 
     document.body.appendChild(form);
     form.submit();
+    
+    // Clean up form after submission
+    document.body.removeChild(form);
   }
 }
 
