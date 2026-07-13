@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       .select(`
         id, vendor_id, customer_id, status,
         vendor:vendors!service_reservations_vendor_id_fkey(subscription_type),
-        customer:users!service_reservations_customer_id_fkey(first_name, last_name, email, phone, address, city, country)
+        customer:users!service_reservations_customer_id_fkey(first_name, last_name, email, phone)
       `)
       .eq('id', id)
       .single();
@@ -121,9 +121,8 @@ export async function POST(request: Request) {
       last_name: customer?.last_name || '',
       email: customer?.email || '',
       phone: customer?.phone || '',
-      address: customer?.address || '',
-      city: customer?.city || '',
-      country: customer?.country || '',
+      
+      
       custom_1: reservation.vendor_id,
       custom_2: id,
       hash,

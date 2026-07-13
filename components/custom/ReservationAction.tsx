@@ -275,6 +275,3 @@ export default function ReservationAction({
     </Dialog>
   );
 }
-/*
-
-https://claude.ai/chat/61ed978f-ba8a-477e-b426-ba5c9121172a*/

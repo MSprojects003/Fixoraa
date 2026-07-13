@@ -6,6 +6,7 @@
 //  - services (service_id -> service name)
 
 import { createClient } from "@/lib/supabase/client";
+ 
 
 // ---------- Types ----------
 
@@ -193,12 +194,10 @@ export async function acceptReservation(
 
   const data = await res.json();
 
-  // If we got payment data back, submit the PayHere form
   if (data.paymentData) {
     const form = document.createElement("form");
     form.method = "POST";
     form.action = "https://sandbox.payhere.lk/pay/checkout";
-    // Determine if live or sandbox based on env
     if (process.env.NEXT_PUBLIC_PAYHERE_ENV === "live") {
       form.action = "https://www.payhere.lk/pay/checkout";
     }
