@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       .from('service_reservations')
       .select(`
         id, vendor_id, customer_id, status,
-        vendor:vendors!service_reservations_vendor_id_fkey(subscription_type),
+        vendor:vendors!service_reservations_vendor_id_fkey(subscription_type, address),
         customer:users!service_reservations_customer_id_fkey(first_name, last_name, email, phone)
       `)
       .eq('id', id)
@@ -116,6 +116,7 @@ export async function POST(request: Request) {
     }
 
     // 6. Return PayHere form data for frontend to submit
+    // Note: address and city come from vendor table, country is always Sri Lanka
     const paymentData = {
       merchant_id: merchantId,
       return_url: `${appUrl}/reservations`,
@@ -129,9 +130,9 @@ export async function POST(request: Request) {
       last_name: customer?.last_name || '',
       email: customer?.email || '',
       phone: customer?.phone || '',
-      address: customer?.address || '',
-      city: customer?.city || '',
-      country: customer?.country || '',
+      address: vendor?.address || '',
+      city: 'Colombo',
+      country: 'Sri Lanka',
       custom_1: reservation.vendor_id,
       custom_2: id,
       hash,

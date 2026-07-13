@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import crypto from 'crypto';
-import { COMMISSION_RATES, type PlanType } from '@/lib/reservation-commision';
+import { commissionRateFor, type PlanType } from '@/lib/reservation-commision';
 
 const PLAN_AMOUNTS: Record<string, number> = {
   basic: 0.10,
@@ -177,16 +177,27 @@ async function handleReservationCommissionNotify(
     .eq('id', vendorId)
     .single();
 
+  console.log('[notify] Updating reservation to accepted:', {
+    reservationId,
+    vendorId,
+    paymentId: payment_id,
+    amount: payhere_amount,
+  });
+
   const { error: reservationError } = await supabase
     .from('service_reservations')
     .update({ status: 'accepted' })
     .eq('id', reservationId);
 
   if (reservationError) {
-    console.error('Failed to mark reservation accepted after payment:', reservationError);
+    console.error('[notify] Failed to mark reservation accepted after payment:', reservationError);
+  } else {
+    console.log('[notify] Successfully updated reservation to accepted:', reservationId);
   }
 
   const planType = (vendor?.subscription_type ?? 'basic') as PlanType;
+  const commissionRateDecimal = commissionRateFor(planType);
+  const commissionRatePercent = Math.round(commissionRateDecimal * 100);
 
   const { error: paymentError } = await supabase.from('admin_payments').upsert(
     {
@@ -199,7 +210,7 @@ async function handleReservationCommissionNotify(
       reservation_id: reservationId,
       payment_details: {
         plan_type: planType,
-        commission_rate: COMMISSION_RATES[planType],
+        commission_rate: commissionRatePercent,
       },
       is_subscription_payment: false,
       is_order_payment: false,
