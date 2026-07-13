@@ -154,7 +154,7 @@ export default function ReservationPage() {
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "all">("all");
   const [page, setPage] = useState(1);
 
-  const { reservations, rows, isLoading, isError, error, mutate } = useReservations({
+  const { reservations, rows, isLoading, isError, error, refetch } = useReservations({
     search: query,
     status: statusFilter,
   });
@@ -187,7 +187,7 @@ export default function ReservationPage() {
           console.log("[PayHere] Reservation updated successfully:", result);
           toast.success("Reservation accepted after payment confirmation");
           // Refresh reservations to show updated status
-          mutate();
+          refetch?.();
         } else {
           console.error("[PayHere] Failed to update reservation:", result);
           toast.info("Payment confirmed. Please refresh to see updated status.");
@@ -199,7 +199,7 @@ export default function ReservationPage() {
     };
 
     updateReservation();
-  }, [searchParams, mutate, toast]);
+  }, [searchParams, refetch]);
 
   // Which reservation the Sheet/Dialog are currently pointed at, plus
   // whether the action dialog should skip straight to accept/reject.

@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // 5. Create admin_payments record
-    await supabase.from('admin_payments').insert({
+    const { error: paymentError } = await supabase.from('admin_payments').insert({
       user_id: reservation.customer_id,
       payment_amount: commissionAmount,
       payment_method: 'card',
@@ -92,7 +92,11 @@ export async function POST(request: Request) {
       is_subscription_payment: false,
       is_order_payment: false,
       is_reservation_payment: true,
-    }).catch(err => console.warn('[reservations/accept] Payment record error:', err));
+    });
+
+    if (paymentError) {
+      console.warn('[reservations/accept] Payment record error:', paymentError);
+    }
 
     // 6. Return PayHere form data
     const paymentData = {
