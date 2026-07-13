@@ -35,19 +35,29 @@ export async function POST(request: Request) {
     }
 
     // 2. Update reservation
-    const { error: updateError } = await supabase
+    console.log('[reservations/accept] Updating reservation with:', {
+      id,
+      vendorStartTime,
+      vendorEndTime,
+      finalVendorTotalAmount,
+    });
+
+    const { data: updateResult, error: updateError } = await supabase
       .from('service_reservations')
       .update({
         vendor_start_time: vendorStartTime,
         vendor_end_time: vendorEndTime,
         final_vendor_total_amount: finalVendorTotalAmount,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select();
 
     if (updateError) {
       console.error('[reservations/accept] Update error:', updateError);
       return NextResponse.json({ error: 'Update failed' }, { status: 500 });
     }
+
+    console.log('[reservations/accept] Updated reservation:', updateResult);
 
     // 3. Calculate commission
     const vendor = Array.isArray(reservation.vendor) ? reservation.vendor[0] : reservation.vendor;
@@ -77,25 +87,31 @@ export async function POST(request: Request) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // 5. Create admin_payments record
-    const { error: paymentError } = await supabase.from('admin_payments').insert({
-      user_id: reservation.customer_id,
-      payment_amount: commissionAmount,
-      payment_method: 'card',
-      order_id: orderId,
-      reservation_id: id,
-      payment_details: {
-        commission_rate: commissionRatePercent,
-        total_reservation_amount: amount,
-        vendor_id: reservation.vendor_id,
-        plan_type: planType,
-      },
-      is_subscription_payment: false,
-      is_order_payment: false,
-      is_reservation_payment: true,
-    });
+    try {
+      const { error: paymentError } = await supabase.from('admin_payments').insert({
+        user_id: reservation.customer_id,
+        payment_amount: commissionAmount,
+        payment_method: 'card',
+        order_id: orderId,
+        reservation_id: id,
+        payment_details: {
+          commission_rate: commissionRatePercent,
+          total_reservation_amount: amount,
+          vendor_id: reservation.vendor_id,
+          plan_type: planType,
+        },
+        is_subscription_payment: false,
+        is_order_payment: false,
+        is_reservation_payment: true,
+      });
 
-    if (paymentError) {
-      console.warn('[reservations/accept] Payment record error:', paymentError);
+      if (paymentError) {
+        console.warn('[reservations/accept] Payment record warning:', paymentError.message);
+      } else {
+        console.log('[reservations/accept] Payment record created successfully for order:', orderId);
+      }
+    } catch (paymentErr) {
+      console.error('[reservations/accept] Payment record error:', paymentErr);
     }
 
     // 6. Return PayHere form data

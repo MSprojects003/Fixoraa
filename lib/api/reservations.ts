@@ -195,6 +195,18 @@ export async function acceptReservation(
   const data = await res.json();
 
   if (data.paymentData) {
+    // Store payment data in localStorage for use after PayHere callback
+    const paymentPayload = {
+      reservationId: id,
+      orderId: data.orderId,
+      commissionAmount: data.commissionAmount,
+      commissionRate: data.commissionRate,
+      finalVendorTotalAmount: payload.finalVendorTotalAmount,
+      timestamp: new Date().toISOString(),
+    };
+    localStorage.setItem("payhere_pending_payment", JSON.stringify(paymentPayload));
+    console.log("[acceptReservation] Stored payment data in localStorage:", paymentPayload);
+
     const form = document.createElement("form");
     form.method = "POST";
     form.action = "https://sandbox.payhere.lk/pay/checkout";
