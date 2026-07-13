@@ -1,18 +1,18 @@
 // app/api/reservations/accept/route.ts
 //
-// Accepts a reservation, computes the platform's commission from the
-// vendor's plan, and now ACTUALLY charges it through PayHere's Charging
-// API using the customer's stored token — this is what makes it show up
-// in your PayHere sandbox dashboard, unlike the pure-DB version before.
+// Accepts a reservation and stages it for PayHere commission payment.
+// When the vendor accepts a reservation, we:
+// 1. Update the reservation status to "accepted"
+// 2. Calculate the commission based on their subscription plan
+// 3. Return payment data so the frontend can redirect to PayHere
+// 4. PayHere notifies /api/payment/notify when payment completes
 //
-// REQUIRES: the customer must have already completed the one-time card
-// preapproval (see /api/payment/preapproval/initiate) so a row exists in
-// payment_cards for them. If they haven't, there's no PayHere transaction
-// possible — we fall back to recording the commission locally only, and
-// tell you that in the response so it's not a silent gap.
+// The reservation becomes fully "accepted" only after PayHere payment succeeds
+// (confirmed via webhook in /api/payment/notify).
 
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { calculateCommission, type PlanType } from '@/lib/reservation-commision';
 
 const COMMISSION_RATES: Record<string, number> = {
   basic: 15,
@@ -20,38 +20,6 @@ const COMMISSION_RATES: Record<string, number> = {
   premium: 13,
 };
 const DEFAULT_COMMISSION_RATE = 15;
-
-const PAYHERE_OAUTH_URL =
-  process.env.PAYHERE_ENV === 'live'
-    ? 'https://www.payhere.lk/merchant/v1/oauth/token'
-    : 'https://sandbox.payhere.lk/merchant/v1/oauth/token';
-
-const PAYHERE_CHARGE_URL =
-  process.env.PAYHERE_ENV === 'live'
-    ? 'https://www.payhere.lk/merchant/v1/payment/charge'
-    : 'https://sandbox.payhere.lk/merchant/v1/payment/charge';
-
-async function getPayHereAccessToken(): Promise<string> {
-  const appId = process.env.PAYHERE_APP_ID!;
-  const appSecret = process.env.PAYHERE_APP_SECRET!;
-  const basicAuth = Buffer.from(`${appId}:${appSecret}`).toString('base64');
-
-  const res = await fetch(PAYHERE_OAUTH_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${basicAuth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-  });
-
-  if (!res.ok) {
-    throw new Error(`PayHere OAuth failed: ${res.status}`);
-  }
-
-  const data = await res.json();
-  return data.access_token;
-}
 
 export async function POST(request: Request) {
   try {
@@ -65,10 +33,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // 1. Fetch the reservation.
+    // 1. Fetch the reservation with customer and vendor info
     const { data: reservation, error: fetchError } = await supabase
       .from('service_reservations')
-      .select('id, vendor_id, customer_id, payment_method, payment_reference')
+      .select(`
+        id, 
+        vendor_id, 
+        customer_id,
+        status,
+        vendor:vendors!service_reservations_vendor_id_fkey(id, user_id, subscription_type),
+        customer:users!service_reservations_customer_id_fkey(first_name, last_name, email, phone, address, city, country)
+      `)
       .eq('id', id)
       .single();
 
@@ -77,15 +52,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Reservation not found' }, { status: 404 });
     }
 
-    // 2. Accept the reservation.
+    if (reservation.status !== 'pending') {
+      return NextResponse.json(
+        { error: 'Only pending reservations can be accepted' },
+        { status: 400 }
+      );
+    }
+
+    // 2. Update reservation with vendor's times and amount
     const { error: updateError } = await supabase
       .from('service_reservations')
       .update({
-        status: 'accepted',
         vendor_start_time: vendorStartTime,
         vendor_end_time: vendorEndTime,
         final_vendor_total_amount: finalVendorTotalAmount,
-        cancellation_reason: null,
       })
       .eq('id', id);
 
@@ -94,126 +74,68 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    // 3. Work out the commission from the vendor's active plan.
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('plan_type')
-      .eq('vendor_id', reservation.vendor_id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    // 3. Calculate commission based on vendor's subscription plan
+    const vendor = Array.isArray(reservation.vendor) ? reservation.vendor[0] : reservation.vendor;
+    const customer = Array.isArray(reservation.customer) ? reservation.customer[0] : reservation.customer;
+    
+    const planType = (vendor?.subscription_type ?? 'basic') as PlanType;
+    const commissionAmount = calculateCommission(Number(finalVendorTotalAmount), planType);
+    const commissionRate = COMMISSION_RATES[planType] ?? DEFAULT_COMMISSION_RATE;
 
-    const planType = subscription?.plan_type ?? null;
-    const commissionRate =
-      (planType && COMMISSION_RATES[planType]) ?? DEFAULT_COMMISSION_RATE;
-    const commissionAmount = Number(
-      (finalVendorTotalAmount * (commissionRate / 100)).toFixed(2)
-    );
+    console.log(`[reservations/accept] Reservation ${id}: commission=${commissionAmount}, plan=${planType}`);
 
-    // 4. Try to actually charge it through PayHere, using the customer's
-    // stored token. This is the part that makes a real transaction appear
-    // in your PayHere sandbox dashboard.
-    let payhereChargeSucceeded = false;
-    let payhereReference: string | null = null;
-    let chargeWarning: string | null = null;
-
-    const { data: card } = await supabase
-      .from('payment_cards')
-      .select('customer_token')
-      .eq('user_id', reservation.customer_id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (!card) {
-      chargeWarning =
-        'No active payment_cards token for this customer — commission recorded locally only, nothing sent to PayHere. Customer needs to complete /api/payment/preapproval/initiate first.';
-      console.warn(`[reservations/accept] ${chargeWarning}`);
-    } else {
-      try {
-        const accessToken = await getPayHereAccessToken();
-        const orderId = `COMM-RSV-${id}-${Date.now()}`;
-
-        const chargeRes = await fetch(PAYHERE_CHARGE_URL, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            customer_token: card.customer_token,
-            order_id: orderId,
-            items: `Commission for reservation ${id}`,
-            currency: 'LKR',
-            amount: commissionAmount.toFixed(2),
-          }),
-        });
-
-        const chargeData = await chargeRes.json();
-
-        if (chargeData.status === 1 && chargeData.data?.status_code === 2) {
-          payhereChargeSucceeded = true;
-          payhereReference = String(chargeData.data.payment_id);
-          console.log(
-            `[reservations/accept] PayHere charge succeeded: payment_id=${payhereReference}`
-          );
-        } else {
-          chargeWarning = chargeData.data?.status_message || 'PayHere charge failed';
-          console.error('[reservations/accept] PayHere charge failed:', chargeData);
-        }
-      } catch (chargeErr) {
-        chargeWarning = (chargeErr as Error).message;
-        console.error('[reservations/accept] PayHere charge error:', chargeErr);
-      }
-    }
-
-    // 5. Record it in admin_payments either way — payhereReference is
-    // null if the charge didn't happen, so you can see which rows are
-    // "real" PayHere transactions vs local-only records.
+    // 4. Record the staged payment in admin_payments with pending status
+    const orderId = `RSVPAY_${id}_${Date.now()}`;
+    
     const { error: paymentError } = await supabase
       .from('admin_payments')
-      .upsert(
-        {
-          user_id: reservation.customer_id,
-          payment_amount: commissionAmount,
-          payment_method: 'card',
-          reciept_image_url: null,
-          reference: payhereReference ?? reservation.payment_reference ?? null,
-          order_id: null,
-          reservation_id: id,
-          payment_details: {
-            commission_amount: commissionAmount,
-            commission_rate: commissionRate,
-            total_reservation_amount: finalVendorTotalAmount,
-            vendor_id: reservation.vendor_id,
-            plan_type: planType,
-            payhere_charged: payhereChargeSucceeded,
-            charge_warning: chargeWarning,
-          },
-          is_subscription_payment: false,
-          is_order_payment: false,
-          is_reservation_payment: true,
+      .insert({
+        user_id: reservation.customer_id,
+        payment_amount: commissionAmount,
+        payment_method: 'card',
+        reciept_image_url: null,
+        reference: null,
+        order_id: orderId,
+        reservation_id: id,
+        payment_details: {
+          commission_amount: commissionAmount,
+          commission_rate: commissionRate,
+          total_reservation_amount: Number(finalVendorTotalAmount),
+          vendor_id: reservation.vendor_id,
+          plan_type: planType,
+          staged: true,
         },
-        { onConflict: 'reservation_id' }
-      );
-
-    if (paymentError) {
-      console.error('[reservations/accept] admin_payments insert error:', paymentError);
-      return NextResponse.json({
-        success: true,
-        warning: 'Reservation accepted, but admin_payments insert failed',
-        paymentErrorDetail: paymentError.message,
+        is_subscription_payment: false,
+        is_order_payment: false,
+        is_reservation_payment: true,
       });
+
+    if (paymentError && !paymentError.message.includes('duplicate')) {
+      console.error('[reservations/accept] admin_payments insert error:', paymentError);
     }
 
+    // 5. Return payment staging info so frontend can redirect to PayHere
     return NextResponse.json({
       success: true,
+      reservationId: id,
+      orderId,
       commissionAmount,
-      commissionRate,
-      payhereChargeSucceeded,
-      chargeWarning,
+      commissionRate: `${commissionRate}%`,
+      totalAmount: Number(finalVendorTotalAmount),
+      customer: {
+        first_name: customer?.first_name || '',
+        last_name: customer?.last_name || '',
+        email: customer?.email || '',
+        phone: customer?.phone || '',
+        address: customer?.address || '',
+        city: customer?.city || '',
+        country: customer?.country || '',
+      },
+      vendor: {
+        id: vendor?.id,
+        user_id: vendor?.user_id,
+      },
+      ready_for_payhere: true,
     });
   } catch (error) {
     console.error('[reservations/accept] route error:', error);
