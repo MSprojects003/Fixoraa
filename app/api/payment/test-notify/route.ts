@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { calculateCommission, type PlanType, commissionRateFor } from '@/lib/reservation-commision';
 
 // Test endpoint to verify the notification flow works
-// Call this with: POST /api/payment/test-notify?reservation_id=YOUR_ID
+// Call this with: POST /api/payment/test-notify?reservation_id=YOUR_ID with paymentData in body
 export async function POST(request: Request) {
   try {
     const url = new URL(request.url);
@@ -13,7 +13,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing reservation_id query param' }, { status: 400 });
     }
 
-    console.log('[test-notify] Attempting to update reservation:', reservationId);
+    // Parse payment data from request body (from localStorage)
+    let paymentData = null;
+    try {
+      const body = await request.json();
+      paymentData = body.paymentData;
+    } catch (e) {
+      console.warn('[test-notify] Could not parse request body:', e);
+    }
+
+    console.log('[test-notify] Processing reservation:', reservationId);
+    console.log('[test-notify] Payment data received:', paymentData);
 
     const supabase = createAdminClient();
 
@@ -38,10 +48,16 @@ export async function POST(request: Request) {
 
     console.log('[test-notify] Current reservation status:', reservation.status);
 
-    // Update status
+    // Update reservation with status='accepted' and total_amount from payment data
+    const totalAmount = paymentData?.finalVendorTotalAmount || Number(reservation.final_vendor_total_amount || 0);
+    console.log('[test-notify] Updating with total_amount:', totalAmount);
+
     const { data: updateResult, error: updateError } = await supabase
       .from('service_reservations')
-      .update({ status: 'accepted' })
+      .update({ 
+        status: 'accepted',
+        total_amount: totalAmount,
+      })
       .eq('id', reservationId)
       .select();
 
@@ -50,24 +66,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Update failed', details: updateError }, { status: 500 });
     }
 
-    console.log('[test-notify] Update successful:', updateResult);
+    console.log('[test-notify] Reservation updated successfully:', updateResult);
 
-    // Create admin_payments record if it doesn't exist
+    // Insert admin_payments record with payment data
     const vendor = Array.isArray(reservation.vendor) ? reservation.vendor[0] : reservation.vendor;
     const planType = (vendor?.subscription_type ?? 'basic') as PlanType;
-    const amount = Number(reservation.final_vendor_total_amount || 0);
-    const commissionAmount = calculateCommission(amount, planType);
-    const commissionRateDecimal = commissionRateFor(planType);
-    const commissionRatePercent = Math.round(commissionRateDecimal * 100);
+    const commissionAmount = paymentData?.commissionAmount || calculateCommission(totalAmount, planType);
+    const commissionRate = paymentData?.commissionRate || Math.round(commissionRateFor(planType) * 100);
+    const orderId = paymentData?.orderId || `RSVPAY_${reservationId}_${Date.now()}`;
 
-    const orderId = `RSVPAY_${reservationId}_${Date.now()}`;
-
-    // Insert admin_payments record
-    console.log('[test-notify] Creating payment record:', {
+    console.log('[test-notify] Creating admin_payments record:', {
       orderId,
       commissionAmount,
-      commissionRatePercent,
-      amount,
+      commissionRate,
+      totalAmount,
+      vendorId: reservation.vendor_id,
+      planType,
     });
 
     try {
@@ -78,8 +92,9 @@ export async function POST(request: Request) {
         order_id: orderId,
         reservation_id: reservationId,
         payment_details: {
-          commission_rate: commissionRatePercent,
-          total_reservation_amount: amount,
+          commission_rate: commissionRate,
+          commission_amount: commissionAmount,
+          total_reservation_amount: totalAmount,
           vendor_id: reservation.vendor_id,
           plan_type: planType,
           payment_confirmed: true,
@@ -87,13 +102,13 @@ export async function POST(request: Request) {
         is_subscription_payment: false,
         is_order_payment: false,
         is_reservation_payment: true,
-        reference: 'payhere_commission',
+        reference: orderId,
       }).select();
 
       if (paymentError) {
-        console.error('[test-notify] Payment record error:', paymentError.message, paymentError.code);
+        console.error('[test-notify] Payment insert error:', paymentError.message, paymentError.code);
       } else {
-        console.log('[test-notify] Payment record created successfully:', paymentResult);
+        console.log('[test-notify] Admin payment record created:', paymentResult);
       }
     } catch (paymentErr) {
       console.error('[test-notify] Payment record exception:', paymentErr);
@@ -101,11 +116,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Reservation updated to accepted',
+      message: 'Reservation accepted and payment recorded',
       reservation: updateResult?.[0],
-      commission: {
+      payment: {
         amount: commissionAmount,
-        rate: commissionRatePercent,
+        rate: commissionRate,
+        orderId,
       },
     });
   } catch (error) {

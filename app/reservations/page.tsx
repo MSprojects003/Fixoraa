@@ -174,18 +174,29 @@ export default function ReservationPage() {
     const reservationId = parts[1];
     console.log("[PayHere] Processing callback for reservation:", reservationId);
 
-    // Call test endpoint to update reservation status to accepted
+    // Retrieve stored payment data from localStorage
+    const storedPaymentStr = localStorage.getItem("payhere_pending_payment");
+    const storedPayment = storedPaymentStr ? JSON.parse(storedPaymentStr) : null;
+    console.log("[PayHere] Retrieved stored payment data:", storedPayment);
+
+    // Call test endpoint to update reservation status to accepted and insert payment record
     const updateReservation = async () => {
       try {
         const response = await fetch(`/api/payment/test-notify?reservation_id=${reservationId}`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentData: storedPayment,
+          }),
         });
 
         const result = await response.json();
 
         if (response.ok && result.success) {
           console.log("[PayHere] Reservation updated successfully:", result);
-          toast.success("Reservation accepted after payment confirmation");
+          toast.success("Reservation accepted and payment recorded");
+          // Clear stored payment data
+          localStorage.removeItem("payhere_pending_payment");
           // Refresh reservations to show updated status
           mutate();
         } else {
