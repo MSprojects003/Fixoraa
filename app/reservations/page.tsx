@@ -182,6 +182,7 @@ export default function ReservationPage() {
     // Call test endpoint to update reservation status to accepted and insert payment record
     const updateReservation = async () => {
       try {
+        console.log("[PayHere] Sending update request with reservation:", reservationId);
         const response = await fetch(`/api/payment/test-notify?reservation_id=${reservationId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -190,7 +191,9 @@ export default function ReservationPage() {
           }),
         });
 
+        console.log("[PayHere] Response status:", response.status);
         const result = await response.json();
+        console.log("[PayHere] Response body:", result);
 
         if (response.ok && result.success) {
           console.log("[PayHere] Reservation updated successfully:", result);
@@ -200,7 +203,7 @@ export default function ReservationPage() {
           // Refresh reservations to show updated status
           mutate();
         } else {
-          console.error("[PayHere] Failed to update reservation:", result);
+          console.error("[PayHere] Failed to update reservation. Status:", response.status, "Result:", result);
           toast.info("Payment confirmed. Please refresh to see updated status.");
         }
       } catch (error) {

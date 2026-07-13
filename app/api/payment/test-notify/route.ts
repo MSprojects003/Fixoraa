@@ -4,10 +4,12 @@ import { calculateCommission, type PlanType, commissionRateFor } from '@/lib/res
 
 export async function POST(request: Request) {
   try {
+    console.log('[test-notify] ========== START ==========');
     const url = new URL(request.url);
     const reservationId = url.searchParams.get('reservation_id');
 
     if (!reservationId) {
+      console.error('[test-notify] Missing reservation_id');
       return NextResponse.json({ error: 'Missing reservation_id' }, { status: 400 });
     }
 
@@ -16,8 +18,9 @@ export async function POST(request: Request) {
     try {
       const body = await request.json();
       paymentData = body.paymentData;
+      console.log('[test-notify] Parsed body successfully');
     } catch (e) {
-      console.warn('[test-notify] Could not parse body');
+      console.warn('[test-notify] Could not parse body:', e);
     }
 
     console.log('[test-notify] Reservation ID:', reservationId);
@@ -111,7 +114,7 @@ export async function POST(request: Request) {
 
     console.log('[test-notify] Payment record inserted successfully:', insertResult);
 
-    return NextResponse.json({
+    const response = {
       success: true,
       message: 'Reservation accepted and payment recorded',
       data: {
@@ -121,12 +124,18 @@ export async function POST(request: Request) {
         commissionRate: commissionRatePercent,
         paymentInserted: true,
       },
-    });
+    };
+    console.log('[test-notify] Returning success response:', response);
+    console.log('[test-notify] ========== END ==========');
+    return NextResponse.json(response);
   } catch (error) {
     console.error('[test-notify] Server error:', error);
-    return NextResponse.json({ 
+    const errorResponse = { 
       error: 'Server error',
       details: String(error),
-    }, { status: 500 });
+    };
+    console.error('[test-notify] Returning error response:', errorResponse);
+    console.log('[test-notify] ========== END WITH ERROR ==========');
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
