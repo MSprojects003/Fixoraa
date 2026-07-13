@@ -63,8 +63,15 @@ export async function POST(request: Request) {
     const orderId = `RSVPAY_${reservationId}_${Date.now()}`;
 
     // Insert admin_payments record
+    console.log('[test-notify] Creating payment record:', {
+      orderId,
+      commissionAmount,
+      commissionRatePercent,
+      amount,
+    });
+
     try {
-      const { error: paymentError } = await supabase.from('admin_payments').insert({
+      const { data: paymentResult, error: paymentError } = await supabase.from('admin_payments').insert({
         user_id: reservation.customer_id,
         payment_amount: commissionAmount,
         payment_method: 'card',
@@ -81,15 +88,15 @@ export async function POST(request: Request) {
         is_order_payment: false,
         is_reservation_payment: true,
         reference: 'payhere_commission',
-      });
+      }).select();
 
       if (paymentError) {
-        console.warn('[test-notify] Payment record warning:', paymentError.message);
+        console.error('[test-notify] Payment record error:', paymentError.message, paymentError.code);
       } else {
-        console.log('[test-notify] Payment record created successfully');
+        console.log('[test-notify] Payment record created successfully:', paymentResult);
       }
     } catch (paymentErr) {
-      console.warn('[test-notify] Could not create payment record:', paymentErr);
+      console.error('[test-notify] Payment record exception:', paymentErr);
     }
 
     return NextResponse.json({
