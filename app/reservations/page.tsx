@@ -1,5 +1,7 @@
 'use client';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -147,14 +149,68 @@ function formatDate(dateStr: string) {
 }
 
 export default function ReservationPage() {
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "all">("all");
   const [page, setPage] = useState(1);
 
-  const { reservations, rows, isLoading, isError, error } = useReservations({
+  const { reservations, rows, isLoading, isError, error, mutate } = useReservations({
     search: query,
     status: statusFilter,
   });
+
+  // Handle PayHere callback when user is redirected back with order_id
+  useEffect(() => {
+    const orderId = searchParams.get("order_id");
+    if (!orderId) return;
+
+    // Extract reservation ID from order_id format: RSVPAY_{reservationId}_{timestamp}
+    const parts = orderId.split("_");
+    if (parts.length < 3 || parts[0] !== "RSVPAY") {
+      console.error("[PayHere] Invalid order_id format:", orderId);
+      return;
+    }
+
+    const reservationId = parts[1];
+    console.log("[PayHere] Processing callback for reservation:", reservationId);
+
+    // Call test endpoint to update reservation status to accepted
+    const updateReservation = async () => {
+      try {
+        const response = await fetch(`/api/payment/test-notify?reservation_id=${reservationId}`, {
+          method: "POST",
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          console.log("[PayHere] Reservation updated successfully:", result);
+          toast({
+            title: "Success",
+            description: "Reservation accepted after payment confirmation",
+          });
+          // Refresh reservations to show updated status
+          mutate();
+        } else {
+          console.error("[PayHere] Failed to update reservation:", result);
+          toast({
+            title: "Update Status",
+            description: "Payment confirmed. Please refresh to see updated status.",
+            variant: "default",
+          });
+        }
+      } catch (error) {
+        console.error("[PayHere] Error updating reservation:", error);
+        toast({
+          title: "Notice",
+          description: "Payment confirmed. Refresh page to see changes.",
+        });
+      }
+    };
+
+    updateReservation();
+  }, [searchParams, mutate, toast]);
 
   // Which reservation the Sheet/Dialog are currently pointed at, plus
   // whether the action dialog should skip straight to accept/reject.
