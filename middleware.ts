@@ -37,6 +37,9 @@ export async function middleware(request: NextRequest) {
   // Paths that don't require authentication
   const publicPaths = ['/auth/login', '/auth/register', '/auth/callback']
   const isPublicPath = publicPaths.some(publicPath => path === publicPath)
+  
+  // API routes that handle their own auth
+  const isApiRoute = path.startsWith('/api/')
 
   // Define static assets paths
   const isStaticAsset = path.includes('/_next') || 
@@ -53,7 +56,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect to login if not authenticated and trying to access protected route
-  if (!user && !isPublicPath) {
+  // (but skip API routes — they handle their own auth)
+  if (!user && !isPublicPath && !isApiRoute) {
     const redirectUrl = new URL('/auth/login', request.url)
     return NextResponse.redirect(redirectUrl)
   }

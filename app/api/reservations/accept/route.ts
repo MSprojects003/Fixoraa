@@ -12,6 +12,8 @@
 
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { calculateCommission, type PlanType } from '@/lib/reservation-commision';
 
 const COMMISSION_RATES: Record<string, number> = {
@@ -24,6 +26,27 @@ const DEFAULT_COMMISSION_RATE = 15;
 export async function POST(request: Request) {
   try {
     console.log('[reservations/accept] route hit');
+
+    // Check authentication
+    const cookieStore = await cookies();
+    const supabaseServer = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll() {},
+        },
+      }
+    );
+
+    const { data: { user }, error: userError } = await supabaseServer.auth.getUser();
+    if (!user || userError) {
+      console.error('[reservations/accept] user not authenticated:', userError);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const supabase = createAdminClient();
     const body = await request.json();
