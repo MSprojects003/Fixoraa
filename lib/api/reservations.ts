@@ -168,9 +168,9 @@ export interface AcceptReservationPayload {
   finalVendorTotalAmount: number;
 }
 
-// Now goes through /api/reservations/accept instead of updating Supabase
-// directly, so the server can also write the admin_payments row (service
-// role only — the browser session shouldn't have insert access there).
+// Accepts a reservation and redirects to PayHere payment for commission.
+// The server endpoint returns PayHere payment form data, which we then
+// submit via a hidden form to redirect the user to PayHere checkout.
 export async function acceptReservation(
   id: string,
   payload: AcceptReservationPayload
@@ -189,6 +189,31 @@ export async function acceptReservation(
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || "Failed to accept reservation");
+  }
+
+  const data = await res.json();
+
+  // If we got payment data back, submit the PayHere form
+  if (data.paymentData) {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "https://sandbox.payhere.lk/pay/checkout";
+    // Determine if live or sandbox based on env
+    if (process.env.NEXT_PUBLIC_PAYHERE_ENV === "live") {
+      form.action = "https://www.payhere.lk/pay/checkout";
+    }
+    form.style.display = "none";
+
+    Object.entries(data.paymentData).forEach(([key, value]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = String(value);
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
   }
 }
 
