@@ -1,4 +1,3 @@
-// components/custom/auth-guard.tsx
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
@@ -14,6 +13,15 @@ const AUTH_PAGES = [
   "/auth/process-google-signup",
 ] as const;
 
+// Pages that still require a logged-in user (full auth + profile checks run
+// normally) but should render full-bleed, without the AppSidebar shell.
+// Add any route here that needs to "break out" of the dashboard layout.
+const NO_SIDEBAR_PAGES = [
+  "/subscription",
+  "/payment/success",
+  "/payment/cancel",
+] as const;
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -21,6 +29,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [shouldShowSidebar, setShouldShowSidebar] = useState(false);
   const hasRedirected = useRef(false);
   const supabase = createClient();
+
+  // Pages in this list render without the sidebar shell, but still go
+  // through the auth/profile checks below like any other protected page.
+  const isNoSidebarPage = NO_SIDEBAR_PAGES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -102,7 +116,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
 
         hasRedirected.current = false;
-        setShouldShowSidebar(true);
+        // Authenticated and profile-complete. Whether the sidebar shell
+        // renders is a separate decision (see isNoSidebarPage) from
+        // whether the user is allowed on the page at all.
+        setShouldShowSidebar(!isNoSidebarPage);
         setIsLoading(false);
       } catch {
         hasRedirected.current = true;
@@ -111,7 +128,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     };
 
     checkAuth();
-  }, [pathname, router, supabase]);
+  }, [pathname, router, supabase, isNoSidebarPage]);
 
   if (isLoading) {
     return (

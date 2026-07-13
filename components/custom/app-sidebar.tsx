@@ -10,6 +10,9 @@ import {
   ChevronRight,
   Bell,
   X,
+  Crown,
+  Gem,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -42,6 +45,8 @@ const navItems = [
   { title: "Customers", href: "/customers", icon: Users },
   { title: "Reports", href: "/reports", icon: FileText },
   { title: "Help", href: "/help", icon: HelpCircle },
+  { title: "My Business", href: "/my-business", icon: Users },
+  {title: "Reservations", href: "/reservations", icon: FileText},
 ];
 
 function getPageTitle(pathname: string): string {
@@ -104,6 +109,44 @@ export function AppSidebar() {
     return "User";
   };
 
+  // Get subscription badge
+  const getSubscriptionBadge = () => {
+    const hasSubscription = vendor?.has_subscription === true;
+    const planType = vendor?.subscription_type?.toLowerCase() || 'basic';
+
+    if (!hasSubscription) {
+      return null;
+    }
+
+    const planConfig: Record<string, { icon: any; label: string; className: string }> = {
+      premium: { 
+        icon: Crown, 
+        label: 'Premium', 
+        className: 'bg-black text-white border-gray-800 text-sm' 
+      },
+      pro: { 
+        icon: Gem, 
+        label: 'Pro', 
+        className: 'bg-black text-white border-gray-800 text-sm' 
+      },
+      basic: { 
+        icon: ShieldCheck, 
+        label: 'Basic', 
+        className: ' bg-black text-white border-gray-800 text-sm' 
+      },
+    };
+
+    const config = planConfig[planType] || planConfig.basic;
+    const Icon = config.icon;
+
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${config.className}`}>
+        <Icon className="h-2 w-2" />
+        {config.label}
+      </span>
+    );
+  };
+
   // Get initials for avatar
   const getInitials = () => {
     if (vendor?.vendor_name) {
@@ -124,6 +167,7 @@ export function AppSidebar() {
   const displayName = getDisplayName();
   const displayEmail = currentUser?.email || "user@example.com";
   const initials = getInitials();
+  const subscriptionBadge = getSubscriptionBadge();
 
   return (
     <TooltipProvider>
@@ -143,7 +187,7 @@ export function AppSidebar() {
                 src={logoImage}
                 alt="Logo" 
                 width={95}
-                className="w-12"
+                className="w-24"
               />
             </div>
             {/* Close button for mobile */}
@@ -196,7 +240,14 @@ export function AppSidebar() {
                   <>
                     <div className="flex-1 overflow-hidden text-left">
                       <p className="text-sm font-medium truncate">{displayName}</p>
-                      <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
+                        {subscriptionBadge && (
+                          <span className="flex-shrink-0">
+                            {subscriptionBadge}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </>
@@ -204,7 +255,14 @@ export function AppSidebar() {
                 {isMobile && (
                   <div className="flex-1 overflow-hidden text-left">
                     <p className="text-sm font-medium truncate">{displayName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
+                      {subscriptionBadge && (
+                        <span className="flex-shrink-0">
+                          {subscriptionBadge}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -226,8 +284,6 @@ export function AppSidebar() {
                 }}
                 vendor={{
                   vendor_name: vendor?.vendor_name || undefined,
-                  branch: vendor?.branch || undefined,
-                  address: vendor?.address || undefined,
                 }}
               />
             </DropdownMenuContent>
@@ -271,7 +327,7 @@ export function AppSidebar() {
                   if (parent) {
                     const span = document.createElement('span');
                     span.className = 'text-white text-sm font-bold';
-                    span.textContent = 'A';
+                    span.textContent = '';
                     parent.appendChild(span);
                   }
                 }}

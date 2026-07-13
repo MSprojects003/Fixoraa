@@ -8,9 +8,16 @@ export interface Vendor {
   id: string;
   user_id: string;
   vendor_name: string | null;
+  branch: string | null;
   category: string | null;
   image1: string | null;
   address: string | null;
+  nic_pic: string | null;
+  nic_back: string | null;  // Added NIC back field
+  nic_verified: boolean | null;
+  vo_certificate: string | null;
+  vo_verified: boolean | null;
+  status: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -96,8 +103,6 @@ export async function getCurrentUserVendor(): Promise<Vendor | null> {
     console.error("Error fetching current user vendor:", error);
     return null;
   }
-
-  
 }
 
 // Get all vendors (admin only)
@@ -120,13 +125,41 @@ export async function getAllVendors(): Promise<Vendor[]> {
   }
 }
 
+// Get active vendors (for public listing)
+export async function getActiveVendors(): Promise<Vendor[]> {
+  try {
+    const { data: vendors, error } = await supabase
+      .from('vendors')
+      .select('*')
+      .eq('status', 'active')
+      .order('vendor_name', { ascending: true });
+
+    if (error) {
+      console.error("Error fetching active vendors:", error);
+      return [];
+    }
+
+    return vendors as Vendor[];
+  } catch (error) {
+    console.error("Unexpected error fetching active vendors:", error);
+    return [];
+  }
+}
+
 // Create or update vendor (upsert)
 export async function upsertVendor(vendorData: {
   user_id: string;
   vendor_name?: string;
+  branch?: string;
   category?: string;
   address?: string;
   image1?: string | null;
+  nic_pic?: string | null;
+  nic_back?: string | null;  // Added NIC back field
+  nic_verified?: boolean;
+  vo_certificate?: string | null;
+  vo_verified?: boolean;
+  status?: string;
 }): Promise<Vendor | null> {
   try {
     // Check if vendor exists
@@ -140,9 +173,16 @@ export async function upsertVendor(vendorData: {
         .from('vendors')
         .update({
           vendor_name: vendorData.vendor_name ?? existingVendor.vendor_name,
+          branch: vendorData.branch ?? existingVendor.branch,
           category: vendorData.category ?? existingVendor.category,
           address: vendorData.address ?? existingVendor.address,
           image1: vendorData.image1 !== undefined ? vendorData.image1 : existingVendor.image1,
+          nic_pic: vendorData.nic_pic !== undefined ? vendorData.nic_pic : existingVendor.nic_pic,
+          nic_back: vendorData.nic_back !== undefined ? vendorData.nic_back : existingVendor.nic_back,  // Added NIC back
+          nic_verified: vendorData.nic_verified !== undefined ? vendorData.nic_verified : existingVendor.nic_verified,
+          vo_certificate: vendorData.vo_certificate !== undefined ? vendorData.vo_certificate : existingVendor.vo_certificate,
+          vo_verified: vendorData.vo_verified !== undefined ? vendorData.vo_verified : existingVendor.vo_verified,
+          status: vendorData.status ?? existingVendor.status,
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', vendorData.user_id)
@@ -158,9 +198,16 @@ export async function upsertVendor(vendorData: {
         .insert({
           user_id: vendorData.user_id,
           vendor_name: vendorData.vendor_name || null,
+          branch: vendorData.branch || null,
           category: vendorData.category || null,
           address: vendorData.address || null,
           image1: vendorData.image1 || null,
+          nic_pic: vendorData.nic_pic || null,
+          nic_back: vendorData.nic_back || null,  // Added NIC back
+          nic_verified: vendorData.nic_verified || false,
+          vo_certificate: vendorData.vo_certificate || null,
+          vo_verified: vendorData.vo_verified || false,
+          status: vendorData.status || 'pending',
         })
         .select()
         .single();
@@ -200,6 +247,38 @@ export async function updateVendorByUserId(
     return vendor as Vendor;
   } catch (error) {
     console.error("Unexpected error updating vendor:", error);
+    return null;
+  }
+}
+
+// Update vendor verification status
+export async function updateVendorVerification(
+  userId: string,
+  verificationData: {
+    nic_verified?: boolean;
+    vo_verified?: boolean;
+    status?: string;
+  }
+): Promise<Vendor | null> {
+  try {
+    const { data: vendor, error } = await supabase
+      .from('vendors')
+      .update({
+        ...verificationData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating vendor verification:", error);
+      return null;
+    }
+
+    return vendor as Vendor;
+  } catch (error) {
+    console.error("Unexpected error updating vendor verification:", error);
     return null;
   }
 }
@@ -245,13 +324,14 @@ export async function getVendorByName(vendorName: string): Promise<Vendor | null
   }
 }
 
-// Get vendors by branch
+// Get vendors by category
 export async function getVendorsByCategory(category: string): Promise<Vendor[]> {
   try {
     const { data: vendors, error } = await supabase
       .from('vendors')
       .select('*')
       .ilike('category', `%${category}%`)
+      .eq('status', 'active')
       .order('vendor_name', { ascending: true });
 
     if (error) {
@@ -262,6 +342,94 @@ export async function getVendorsByCategory(category: string): Promise<Vendor[]> 
     return vendors as Vendor[];
   } catch (error) {
     console.error("Unexpected error fetching vendors by category:", error);
+    return [];
+  }
+}
+
+// Get vendors by status
+export async function getVendorsByStatus(status: string): Promise<Vendor[]> {
+  try {
+    const { data: vendors, error } = await supabase
+      .from('vendors')
+      .select('*')
+      .eq('status', status)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching vendors by status:", error);
+      return [];
+    }
+
+    return vendors as Vendor[];
+  } catch (error) {
+    console.error("Unexpected error fetching vendors by status:", error);
+    return [];
+  }
+}
+
+// Get vendors with pending verification
+export async function getPendingVerificationVendors(): Promise<Vendor[]> {
+  try {
+    const { data: vendors, error } = await supabase
+      .from('vendors')
+      .select('*')
+      .or('nic_verified.eq.false,vo_verified.eq.false')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching pending verification vendors:", error);
+      return [];
+    }
+
+    return vendors as Vendor[];
+  } catch (error) {
+    console.error("Unexpected error fetching pending verification vendors:", error);
+    return [];
+  }
+}
+
+// Get vendors with both NIC front and back uploaded
+export async function getVendorsWithNICComplete(): Promise<Vendor[]> {
+  try {
+    const { data: vendors, error } = await supabase
+      .from('vendors')
+      .select('*')
+      .not('nic_pic', 'is', null)
+      .not('nic_back', 'is', null)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching vendors with complete NIC:", error);
+      return [];
+    }
+
+    return vendors as Vendor[];
+  } catch (error) {
+    console.error("Unexpected error fetching vendors with complete NIC:", error);
+    return [];
+  }
+}
+
+// Get vendors with missing NIC back
+export async function getVendorsWithMissingNICBack(): Promise<Vendor[]> {
+  try {
+    const { data: vendors, error } = await supabase
+      .from('vendors')
+      .select('*')
+      .not('nic_pic', 'is', null)
+      .is('nic_back', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching vendors with missing NIC back:", error);
+      return [];
+    }
+
+    return vendors as Vendor[];
+  } catch (error) {
+    console.error("Unexpected error fetching vendors with missing NIC back:", error);
     return [];
   }
 }

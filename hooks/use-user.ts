@@ -28,6 +28,15 @@ export interface Vendor {
   address: string | null;
   created_at: string;
   updated_at: string;
+  nic_pic: string | null;
+  nic_verified: boolean | null;
+  vo_certificate: string | null;
+  vo_verified: boolean | null;
+  status: string | null;
+  nic_back: string | null;
+  subscription_type: string | null;
+  has_subscription: boolean | null;
+  edit_tracking: string | null;
 }
 
 export interface Profile {
@@ -179,7 +188,6 @@ const vendorApi = {
         code: error.code,
         details: error.details,
         hint: error.hint,
-        statusCode: error.statusCode,
       });
       throw error;
     }

@@ -26,6 +26,7 @@ interface UserMenuCardProps {
   };
 }
 
+
 export function UserMenuCard({ onNavigate, onSignOut, user, vendor }: UserMenuCardProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
