@@ -271,8 +271,9 @@ async function handleReservationCommissionNotify(
   );
 
   if (paymentError) {
-    console.error('admin_payments insert error (reservation commission):', paymentError);
+    console.error('[handleReservationCommissionNotify] admin_payments upsert error:', paymentError);
   }
 
-  return NextResponse.json({ received: true });
+  console.log('[handleReservationCommissionNotify] Webhook completed successfully');
+  return NextResponse.json({ received: true, success: true });
 }
