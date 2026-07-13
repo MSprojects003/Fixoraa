@@ -62,30 +62,34 @@ export async function POST(request: Request) {
 
     const orderId = `RSVPAY_${reservationId}_${Date.now()}`;
 
-    const { error: paymentError } = await supabase.from('admin_payments').insert({
-      user_id: reservation.customer_id,
-      payment_amount: commissionAmount,
-      payment_method: 'card',
-      order_id: orderId,
-      reservation_id: reservationId,
-      payment_details: {
-        commission_rate: commissionRatePercent,
-        total_reservation_amount: amount,
-        vendor_id: reservation.vendor_id,
-        plan_type: planType,
-        payment_confirmed: true,
-      },
-      is_subscription_payment: false,
-      is_order_payment: false,
-      is_reservation_payment: true,
-      reference: 'payhere_commission',
-    }).catch(err => {
-      console.warn('[test-notify] Could not create payment record:', err);
-      return { error: null }; // Don't fail if payment record already exists
-    });
+    // Insert admin_payments record
+    try {
+      const { error: paymentError } = await supabase.from('admin_payments').insert({
+        user_id: reservation.customer_id,
+        payment_amount: commissionAmount,
+        payment_method: 'card',
+        order_id: orderId,
+        reservation_id: reservationId,
+        payment_details: {
+          commission_rate: commissionRatePercent,
+          total_reservation_amount: amount,
+          vendor_id: reservation.vendor_id,
+          plan_type: planType,
+          payment_confirmed: true,
+        },
+        is_subscription_payment: false,
+        is_order_payment: false,
+        is_reservation_payment: true,
+        reference: 'payhere_commission',
+      });
 
-    if (paymentError && !paymentError.message?.includes('duplicate')) {
-      console.warn('[test-notify] Payment record warning:', paymentError);
+      if (paymentError) {
+        console.warn('[test-notify] Payment record warning:', paymentError.message);
+      } else {
+        console.log('[test-notify] Payment record created successfully');
+      }
+    } catch (paymentErr) {
+      console.warn('[test-notify] Could not create payment record:', paymentErr);
     }
 
     return NextResponse.json({
