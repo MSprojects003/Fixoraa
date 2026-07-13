@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { calculateCommission, type PlanType, commissionRateFor } from '@/lib/reservation-commision';
-import crypto from 'crypto';
 
 export async function POST(request: Request) {
   try {
@@ -64,19 +63,34 @@ export async function POST(request: Request) {
 
     // 4. Generate PayHere payment data
     const orderId = `RSVPAY_${id}_${Date.now()}`;
-    const secret = process.env.PAYHERE_MERCHANT_SECRET;
-    const merchantId = process.env.PAYHERE_MERCHANT_ID;
+    const merchantId = process.env.NEXT_PUBLIC_PAYHERE_MERCHANT_ID || process.env.PAYHERE_MERCHANT_ID;
+    const currency = 'LKR';
+    const formattedAmount = commissionAmount.toFixed(2);
 
-    if (!secret || !merchantId) {
-      console.error('[reservations/accept] PayHere config missing');
+    if (!merchantId) {
+      console.error('[reservations/accept] PAYHERE_MERCHANT_ID not set');
       return NextResponse.json({ error: 'Payment configuration error' }, { status: 500 });
     }
 
-    const hashedSecret = crypto.createHash('md5').update(secret).digest('hex').toUpperCase();
-    const currency = 'LKR';
-    const formattedAmount = commissionAmount.toFixed(2);
-    const hashInput = `${merchantId}${orderId}${formattedAmount}${currency}${hashedSecret}`;
-    const hash = crypto.createHash('md5').update(hashInput).digest('hex').toUpperCase();
+    // Call the hash endpoint to get consistent hash calculation
+    let hash = '';
+    try {
+      const hashRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/payment/hash`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ merchantId, orderId, amount: formattedAmount, currency }),
+      });
+      const hashData = await hashRes.json();
+      hash = hashData.hash || '';
+      
+      if (!hash) {
+        console.error('[reservations/accept] Hash generation failed:', hashData);
+        return NextResponse.json({ error: 'Hash generation error' }, { status: 500 });
+      }
+    } catch (hashErr) {
+      console.error('[reservations/accept] Hash fetch error:', hashErr);
+      return NextResponse.json({ error: 'Hash calculation error' }, { status: 500 });
+    }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     
