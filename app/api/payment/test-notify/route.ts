@@ -70,14 +70,15 @@ export async function POST(request: Request) {
 
     console.log('[test-notify] Reservation updated successfully');
 
-    // 4. Insert payment record into admin_payments
+    // 4. Insert payment record into admin_payments using upsert (handles duplicate reservation_id)
     console.log('[test-notify] Inserting admin_payments record...');
     
+    const orderId = `RSVPAY_${reservationId}_${Date.now()}`;
     const paymentRecord = {
       user_id: reservation.customer_id,
       payment_amount: commissionAmount,
       payment_method: 'card',
-      order_id: `RSVPAY_${reservationId}_${Date.now()}`,
+      order_id: orderId,
       reservation_id: reservationId,
       payment_details: {
         plan_type: planType,
@@ -93,26 +94,29 @@ export async function POST(request: Request) {
       reciept_image_url: null,
     };
 
-    console.log('[test-notify] Payment record to insert:', JSON.stringify(paymentRecord, null, 2));
+    console.log('[test-notify] Payment record to upsert:', JSON.stringify(paymentRecord, null, 2));
 
+    // Use upsert to handle UNIQUE constraint on reservation_id
     const { data: paymentResult, error: paymentError } = await supabase
       .from('admin_payments')
-      .insert(paymentRecord)
+      .upsert(paymentRecord, { onConflict: 'reservation_id' })
       .select();
 
     if (paymentError) {
-      console.error('[test-notify] Payment insert failed:', paymentError.message, paymentError.code);
-      console.error('[test-notify] Full error:', paymentError);
-      // Still return success for reservation but note payment insert failed
+      console.error('[test-notify] Payment upsert failed:', paymentError.message);
+      console.error('[test-notify] Error code:', paymentError.code);
+      console.error('[test-notify] Full error details:', paymentError);
+      
+      // Return error response so client knows payment insert failed
       return NextResponse.json({
-        success: true,
-        message: 'Reservation accepted',
-        warning: 'Payment record insert failed: ' + paymentError.message,
+        success: false,
+        message: 'Reservation accepted but payment record failed',
+        error: paymentError.message,
         data: { reservationId, totalAmount },
-      });
+      }, { status: 500 });
     }
 
-    console.log('[test-notify] Payment record inserted successfully:', paymentResult?.[0]?.id);
+    console.log('[test-notify] Payment record upserted successfully:', paymentResult?.[0]?.id);
 
     return NextResponse.json({
       success: true,
