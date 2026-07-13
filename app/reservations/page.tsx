@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -150,7 +150,6 @@ function formatDate(dateStr: string) {
 
 export default function ReservationPage() {
   const searchParams = useSearchParams();
-  const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "all">("all");
   const [page, setPage] = useState(1);
@@ -186,26 +185,16 @@ export default function ReservationPage() {
 
         if (response.ok && result.success) {
           console.log("[PayHere] Reservation updated successfully:", result);
-          toast({
-            title: "Success",
-            description: "Reservation accepted after payment confirmation",
-          });
+          toast.success("Reservation accepted after payment confirmation");
           // Refresh reservations to show updated status
           mutate();
         } else {
           console.error("[PayHere] Failed to update reservation:", result);
-          toast({
-            title: "Update Status",
-            description: "Payment confirmed. Please refresh to see updated status.",
-            variant: "default",
-          });
+          toast.info("Payment confirmed. Please refresh to see updated status.");
         }
       } catch (error) {
         console.error("[PayHere] Error updating reservation:", error);
-        toast({
-          title: "Notice",
-          description: "Payment confirmed. Refresh page to see changes.",
-        });
+        toast.info("Payment confirmed. Refresh page to see changes.");
       }
     };
 
