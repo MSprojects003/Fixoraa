@@ -80,15 +80,15 @@ export default function OrdersPage() {
             </div>
             <div className="w-48">
               <label className="block text-sm font-medium mb-1">Status</label>
-              <Select value={status} onValueChange={(val) => {
-                setStatus(val);
+              <Select value={status || "all"} onValueChange={(val) => {
+                setStatus(val === "all" ? "" : val);
                 setPage(1);
               }}>
                 <SelectTrigger>
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="processing">Processing</SelectItem>

@@ -215,7 +215,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
                 <p className="text-sm text-gray-500 mb-2">Status</p>
                 {editMode ? (
                   <Select
-                    value={formData.status}
+                    value={formData.status || "pending"}
                     onValueChange={(val) =>
                       setFormData({ ...formData, status: val })
                     }
