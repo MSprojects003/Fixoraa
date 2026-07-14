@@ -466,6 +466,7 @@ export default function ReservationPage() {
             </Button>
             </div>
           </div>
+          </div>
         </CardContent>
       </Card>
       </div>
