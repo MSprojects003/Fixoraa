@@ -76,11 +76,20 @@ export function useOrder(id: string) {
   return useQuery<{ data: Order }>({
     queryKey: ['order', id],
     queryFn: async () => {
+      console.log('[useOrder] Fetching order:', id);
       const response = await fetch(`/api/orders/${id}`);
-      if (!response.ok) throw new Error('Failed to fetch order');
-      return response.json();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[useOrder] API error:', response.status, errorData);
+        throw new Error(errorData?.error || `Failed to fetch order (${response.status})`);
+      }
+      const data = await response.json();
+      console.log('[useOrder] Order fetched successfully:', data);
+      return data;
     },
     enabled: !!id,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 

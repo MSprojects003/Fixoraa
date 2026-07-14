@@ -70,16 +70,39 @@ export function OrderDetailsSheet({
   console.log('[OrderDetailsSheet] Loading order:', orderId, 'Loading:', isLoading, 'Error:', isError, 'Data:', order);
 
   if (isError) {
-    console.error('[OrderDetailsSheet] Error fetching order:', error);
+    console.error('[OrderDetailsSheet] Error fetching order:', error, 'Order ID:', orderId);
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="w-full max-w-2xl">
           <SheetHeader>
             <SheetTitle>Error Loading Order</SheetTitle>
           </SheetHeader>
-          <div className="flex items-center gap-2 p-4 text-red-600">
-            <AlertCircle className="h-5 w-5" />
-            <p>Failed to load order details. Please try again.</p>
+          <div className="space-y-4 py-6">
+            <div className="flex items-start gap-3 rounded-lg bg-red-50 p-4">
+              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-red-900">Failed to load order</p>
+                <p className="text-sm text-red-700 mt-1">
+                  {error?.message || 'The order could not be found or accessed'}
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                console.log('[OrderDetailsSheet] Retrying order fetch for:', orderId);
+                refetch();
+              }}
+              className="w-full"
+            >
+              Retry
+            </Button>
+            <Button
+              onClick={() => onOpenChange(false)}
+              variant="outline"
+              className="w-full"
+            >
+              Close
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
