@@ -17,7 +17,6 @@ export async function GET(request: Request) {
       .select(`
         *,
         user:users!orders_user_id_fkey(id, first_name, last_name, email),
-        vendor:vendors!orders_vendor_id_fkey(id, business_name),
         order_items(
           id,
           product_id,
