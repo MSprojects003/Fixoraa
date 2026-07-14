@@ -59,7 +59,7 @@ export function OrderDetailsSheet({
   open,
   onOpenChange,
 }: OrderDetailsSheetProps) {
-  const { data: order, isLoading, refetch } = useOrder(orderId);
+  const { data: order, isLoading, isError, error, refetch } = useOrder(orderId);
   const updateMutation = useUpdateOrder(orderId);
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -67,7 +67,27 @@ export function OrderDetailsSheet({
   const [cancellationReason, setCancellationReason] = useState('');
   const [cancellationDialogOpen, setCancellationDialogOpen] = useState(false);
 
+  console.log('[OrderDetailsSheet] Loading order:', orderId, 'Loading:', isLoading, 'Error:', isError, 'Data:', order);
+
+  if (isError) {
+    console.error('[OrderDetailsSheet] Error fetching order:', error);
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent className="w-full max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Error Loading Order</SheetTitle>
+          </SheetHeader>
+          <div className="flex items-center gap-2 p-4 text-red-600">
+            <AlertCircle className="h-5 w-5" />
+            <p>Failed to load order details. Please try again.</p>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   if (!order && !isLoading) {
+    console.warn('[OrderDetailsSheet] No order data and not loading');
     return null;
   }
 

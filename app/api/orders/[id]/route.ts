@@ -13,7 +13,6 @@ export async function GET(
       .select(`
         *,
         user:users!orders_user_id_fkey(id, first_name, last_name, email, phone),
-        vendor:vendors!orders_vendor_id_fkey(id, business_name),
         order_items(
           id,
           product_id,
@@ -21,7 +20,7 @@ export async function GET(
           unit_price,
           total_amount,
           status,
-          tracking_id,
+          cancellation_reason,
           product:products!order_items_product_id_fkey(id, name, image_url, price)
         )
       `)
