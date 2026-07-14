@@ -6,8 +6,24 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('[orders/[id] API] Fetching order:', params.id);
     const supabase = createAdminClient();
 
+    // First try to fetch the basic order data
+    const { data: basicOrder, error: basicError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', params.id)
+      .single();
+
+    if (basicError) {
+      console.error('[orders/[id] API] Basic order fetch error:', basicError);
+      return NextResponse.json({ error: 'Order not found', details: basicError.message }, { status: 404 });
+    }
+
+    console.log('[orders/[id] API] Basic order found:', basicOrder?.id);
+
+    // Now fetch with relationships
     const { data, error } = await supabase
       .from('orders')
       .select(`
@@ -28,14 +44,16 @@ export async function GET(
       .single();
 
     if (error) {
-      console.error('[orders/[id] API] Error:', error);
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      console.error('[orders/[id] API] Relationship fetch error:', error);
+      // Return basic order without relationships if join fails
+      return NextResponse.json({ data: basicOrder });
     }
 
+    console.log('[orders/[id] API] Order fetched successfully with relationships');
     return NextResponse.json({ data });
   } catch (error) {
     console.error('[orders/[id] API] Server error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 });
   }
 }
 
