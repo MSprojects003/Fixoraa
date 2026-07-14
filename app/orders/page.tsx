@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { useOrders } from '@/lib/hooks/use-orders';
 import { Eye, Loader2 } from 'lucide-react';
-import Link from 'next/link';
+import { OrderDetailsSheet } from '@/components/orders/order-details-sheet';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -38,6 +38,8 @@ export default function OrdersPage() {
   const [limit, setLimit] = useState(10);
   const [status, setStatus] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data, isLoading, isError, error } = useOrders(
     page,
@@ -131,8 +133,8 @@ export default function OrdersPage() {
                 <TableBody>
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-mono text-sm">
-                        {order.id.slice(0, 8)}...
+                      <TableCell className="font-mono text-sm font-semibold">
+                        ORD-{order.id.slice(0, 4).toUpperCase()}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
@@ -162,11 +164,16 @@ export default function OrdersPage() {
                         {order.order_items?.length || 0}
                       </TableCell>
                       <TableCell>
-                        <Link href={`/orders/${order.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedOrderId(order.id);
+                            setSheetOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -220,6 +227,20 @@ export default function OrdersPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Order Details Sheet */}
+      {selectedOrderId && (
+        <OrderDetailsSheet
+          orderId={selectedOrderId}
+          open={sheetOpen}
+          onOpenChange={(open) => {
+            setSheetOpen(open);
+            if (!open) {
+              setSelectedOrderId(null);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
