@@ -24,6 +24,7 @@ export function useOrders(filters: OrderFilters = {}) {
   const query = useQuery({
     queryKey: [ORDERS_KEY, { status, vendorId }],
     queryFn: () => fetchOrders({ status, vendorId }),
+    enabled: vendorId !== null,
     staleTime: 30_000,
   });
   const rows: OrderRow[] = useMemo(() => {

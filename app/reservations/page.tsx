@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -36,12 +37,12 @@ import {
   Clock,
   CalendarDays,
   RotateCcw,
-  Loader2,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
 import { useReservations } from "@/hooks/use-reservations";
+import { useVendor } from "@/hooks/use-user";
 import type { ReservationStatus } from "@/lib/api/reservations";
 import ReservationDetails from "@/components/custom/ReservationDetails";
 import ReservationAction from "@/components/custom/ReservationAction";
@@ -150,6 +151,7 @@ function formatDate(dateStr: string) {
 
 export default function ReservationPage() {
   const searchParams = useSearchParams();
+  const { data: vendor, isLoading: isVendorLoading } = useVendor();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "all">("all");
   const [page, setPage] = useState(1);
@@ -157,6 +159,7 @@ export default function ReservationPage() {
   const { reservations, rows, isLoading, isError, error, refetch } = useReservations({
     search: query,
     status: statusFilter,
+    vendorId: isVendorLoading ? null : vendor?.id ?? null,
   });
 
   // Handle PayHere callback when user is redirected back with order_id
@@ -333,12 +336,15 @@ export default function ReservationPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading && (
-                    <TableRow>
-                      <TableCell colSpan={8} className="py-12 text-center text-sm text-slate-400">
-                        <Loader2 className="mx-auto mb-2 h-4 w-4 animate-spin" />
-                        Loading reservations…
-                      </TableCell>
-                    </TableRow>
+                    Array.from({ length: 6 }, (_, rowIndex) => (
+                      <TableRow key={`reservation-skeleton-${rowIndex}`}>
+                        {Array.from({ length: 8 }, (_, cellIndex) => (
+                          <TableCell key={`reservation-skeleton-${rowIndex}-${cellIndex}`}>
+                            <Skeleton className="h-4 w-full max-w-32" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
                   )}
 
                   {isError && (

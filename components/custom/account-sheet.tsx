@@ -34,12 +34,17 @@ interface AccountSheetProps {
 }
 
 const businessCategories = [
-  { value: "salon", label: "Salon" },
-  { value: "spa", label: "Spa" },
-  { value: "barbershop", label: "Barbershop" },
-  { value: "wellness", label: "Wellness Center" },
-  { value: "beauty", label: "Beauty Studio" },
-  { value: "other", label: "Other" },
+  { value: "salon", label: "Salon", subtext: "Hair & Beauty" },
+  { value: "technician", label: "Technician", subtext: "Home Repairs" },
+  { value: "electrician", label: "Electrician", subtext: "Electrical Work" },
+  { value: "welding", label: "Welding", subtext: "Fabrication" },
+  { value: "interior-design", label: "Interior Design", subtext: "Home Styling" },
+  { value: "bridal", label: "Bridal Services", subtext: "Wedding Makeup" },
+  { value: "architectural", label: "Architectural", subtext: "Design & Planning" },
+  { value: "garden-cleaning", label: "Garden Cleaning", subtext: "Landscaping" },
+  { value: "home-decorator", label: "Home Decorator", subtext: "Interior Decor" },
+  { value: "catering", label: "Catering", subtext: "Food Services" },
+  { value: "garbage-disposal", label: "Garbage Disposal", subtext: "Waste Management" },
 ];
 
 // Edit limits based on subscription type

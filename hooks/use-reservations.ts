@@ -23,6 +23,7 @@ export function useReservations(filters: ReservationFilters = {}) {
   const query = useQuery({
     queryKey: [RESERVATIONS_KEY, { status, vendorId }],
     queryFn: () => fetchReservations({ status, vendorId }),
+    enabled: vendorId !== null,
     staleTime: 30_000,
   });
 

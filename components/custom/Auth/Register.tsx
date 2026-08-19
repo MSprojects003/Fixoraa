@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
 import { Loader2 } from "lucide-react";
+import logo from "./../../../app/assets/logo/white-logo.png"
 import { toast } from "sonner";
 import {
   Mail, Lock, User, Building2, MapPin,
@@ -308,17 +309,69 @@ export function RegisterScreen() {
             position: "relative",
             overflow: "hidden",
             display: "flex",
-            alignItems: "center",
+            flexDirection: "column",
             justifyContent: "center",
             padding: "56px 44px",
           }}>
+            <div style={{
+              position: "absolute",
+              top: "-60px",
+              left: "-40px",
+              width: "220px",
+              height: "220px",
+              borderRadius: "50%",
+              background: "radial-gradient(circle at 35% 35%, #555, #222)",
+              boxShadow: "inset -8px -8px 20px rgba(0,0,0,0.6), inset 6px 6px 14px rgba(255,255,255,0.06)",
+              opacity: 0.9,
+            }} />
+            <div style={{
+              position: "absolute",
+              bottom: "-80px",
+              left: "-60px",
+              width: "280px",
+              height: "280px",
+              borderRadius: "50%",
+              background: "radial-gradient(circle at 40% 40%, #444, #1a1a1a)",
+              boxShadow: "inset -10px -10px 24px rgba(0,0,0,0.7), inset 8px 8px 16px rgba(255,255,255,0.04)",
+              opacity: 0.85,
+            }} />
+            <div style={{
+              position: "absolute",
+              top: "48%",
+              right: "-50px",
+              width: "160px",
+              height: "160px",
+              borderRadius: "50%",
+              background: "radial-gradient(circle at 38% 38%, #3a3a3a, #151515)",
+              boxShadow: "inset -6px -6px 16px rgba(0,0,0,0.6), inset 5px 5px 12px rgba(255,255,255,0.05)",
+              opacity: 0.75,
+            }} />
+
             <div style={{ position: "relative", zIndex: 2 }}>
-              <img src="/logo.png" alt="Logo" style={{
+              <img src={logo.src} alt="Logo" style={{
                 width: "160px",
                 height: "auto",
                 objectFit: "contain",
                 filter: "brightness(0) invert(1)",
               }} />
+              <p style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: "#888",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                marginBottom: "20px",
+              }}>
+                Your Multi Service Agent Pltform
+              </p>
+              <p style={{
+                fontSize: "12.5px",
+                color: "#666",
+                lineHeight: 1.7,
+                maxWidth: "220px",
+              }}>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.
+              </p>
             </div>
           </div>
 
@@ -421,7 +474,7 @@ export function RegisterScreen() {
                 </div>
 
                 <button type="submit" style={{ width: "100%", height: "50px", background: "#111", color: "#fff", borderRadius: "10px", fontSize: "15px", fontWeight: 600, marginTop: "24px" }}>
-                  Continue <ChevronRight size={17} />
+                  Continue   
                 </button>
 
                 <p style={{ textAlign: "center", marginTop: "20px", fontSize: "13px", color: "#888" }}>

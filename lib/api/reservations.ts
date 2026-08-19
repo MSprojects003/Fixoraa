@@ -78,7 +78,7 @@ export interface ReservationRow {
 export interface ReservationFilters {
   search?: string;
   status?: ReservationStatus | "all";
-  vendorId?: string;
+  vendorId?: string | null;
 }
 
 const SELECT_WITH_RELATIONS = `

@@ -43,6 +43,7 @@ import {
   useAcceptOrder,
   useVendorOrderCredits,
 } from "@/hooks/use-orders";
+import { useVendor } from "@/hooks/use-user";
 import OrderDetails from "@/components/custom/orders/OrderDetails";
 import { formatCurrency, type OrderStatus } from "@/lib/api/orders";
 
@@ -140,6 +141,7 @@ interface OrderPageProps {
 
 export default function OrderPage({ vendorId = null }: OrderPageProps) {
   const searchParams = useSearchParams();
+  const { data: currentVendor, isLoading: isVendorLoading } = useVendor();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [page, setPage] = useState(1);
@@ -149,9 +151,11 @@ export default function OrderPage({ vendorId = null }: OrderPageProps) {
   const { rows, isLoading, isError, error, refetch } = useOrders({
     search: query,
     status: statusFilter,
+    vendorId: isVendorLoading ? null : currentVendor?.id ?? vendorId,
   });
 
-  const { data: credits, isLoading: creditsLoading } = useVendorOrderCredits(vendorId);
+  const resolvedVendorId = currentVendor?.id ?? vendorId;
+  const { data: credits, isLoading: creditsLoading } = useVendorOrderCredits(resolvedVendorId);
   const { data: selectedOrder, isLoading: detailLoading } = useOrderDetail(detailsOpen ? selectedId : null);
   const cancelItemMutation = useCancelOrderItem();
   const acceptOrderMutation = useAcceptOrder();
@@ -238,7 +242,7 @@ export default function OrderPage({ vendorId = null }: OrderPageProps) {
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Orders</h1>
             <p className="text-sm text-slate-500">
-              Track, fulfil, and manage customer orders across all vendors.
+              Track, fulfil, and manage your customer orders.
             </p>
           </div>
 

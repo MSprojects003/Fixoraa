@@ -74,7 +74,7 @@ export interface OrderRow {
 export interface OrderFilters {
   search?: string;
   status?: OrderStatus | "all";
-  vendorId?: string;
+  vendorId?: string | null;
 }
 
 export interface VendorOrderCredits {

@@ -16,7 +16,7 @@ import {
   Package,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import {
@@ -58,6 +58,7 @@ function getPageTitle(pathname: string): string {
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { toggleSidebar, state, setOpenMobile, openMobile } = useSidebar();
   const currentPageTitle = getPageTitle(pathname);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -84,8 +85,8 @@ export function AppSidebar() {
   };
 
   const handleNavigation = (path: string) => {
-    console.log(`Navigate to: ${path}`);
     setIsProfileOpen(false);
+    router.push(path);
   };
 
   const handleMobileMenuClose = () => {

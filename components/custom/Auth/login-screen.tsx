@@ -5,6 +5,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, Sun } from "lucide-react";
+import logo from "./../../../app/assets/logo/white-logo.png"
+
 import { createClient } from "@/lib/supabase/client";
 
 export function LoginScreen() {
@@ -130,19 +132,13 @@ export function LoginScreen() {
           />
 
           <div style={{ position: "relative", zIndex: 2 }}>
-            <h2
-              style={{
-                fontSize: "30px",
-                fontWeight: 800,
-                color: "#ffffff",
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                marginBottom: "8px",
-                lineHeight: 1.1,
-              }}
-            >
-              WELCOME
-            </h2>
+             <img src={logo.src} alt="Logo" style={{
+                            width: "160px",
+                            height: "auto",
+                            objectFit: "contain",
+                            filter: "brightness(0) invert(1)",
+                          }} />
+             
             <p
               style={{
                 fontSize: "13px",
@@ -153,7 +149,7 @@ export function LoginScreen() {
                 marginBottom: "20px",
               }}
             >
-              YOUR HEADLINE NAME
+              Your Multi Service Agent Pltform
             </p>
             <p
               style={{
