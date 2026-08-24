@@ -1291,7 +1291,7 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                   ref={voCertificateInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleImageUploadWithTracking(e, "vo_certificates", "vo_certificate")}
+                  onChange={(e) => handleImageUploadWithTracking(e, "VO_certificate", "vo_certificate")}
                   className="hidden"
                 />
                 <div>
