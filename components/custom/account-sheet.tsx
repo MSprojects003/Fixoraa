@@ -288,13 +288,18 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
   };
 
   // Get max edits for current subscription
-  const getMaxEdits = () => {
+  const getNormalizedPlan = () => {
     const plan = subscriptionType || "basic";
-    return EDIT_LIMITS[plan as keyof typeof EDIT_LIMITS]?.maxEdits || 2;
+    return plan.toLowerCase();
+  };
+
+  const getMaxEdits = () => {
+    const plan = getNormalizedPlan();
+    return EDIT_LIMITS[plan as keyof typeof EDIT_LIMITS]?.maxEdits ?? 2;
   };
 
   const getPlanLabel = () => {
-    const plan = subscriptionType || "basic";
+    const plan = getNormalizedPlan();
     return EDIT_LIMITS[plan as keyof typeof EDIT_LIMITS]?.label || "Basic";
   };
 

@@ -58,14 +58,19 @@ const LIMITED_SERVICE_FIELDS = [
 ];
 
 // Map subscription types to max edits per field per billing period
+const normalizePlanName = (subscriptionType: string): string => {
+  return (subscriptionType || 'basic').toString().trim().toLowerCase();
+};
+
 const getMaxEditsForPlan = (subscriptionType: string): number | null => {
+  const plan = normalizePlanName(subscriptionType);
   const map: Record<string, number | null> = {
     'basic': 2,
     'pro': 10,
     'premium': null, // unlimited
     'enterprise': null, // unlimited
   };
-  return map[subscriptionType?.toLowerCase()] ?? 2;
+  return map[plan] ?? 2;
 };
 
 export function EditService({
@@ -192,6 +197,7 @@ export function EditService({
         }
 
         const subscriptionType = vendorData?.subscription_type || 'basic';
+        const normalizedPlan = normalizePlanName(subscriptionType);
         console.log(`[service-limits] Vendor subscription_type: "${subscriptionType}"`);
 
         // Set the plan type based on actual subscription
@@ -199,7 +205,7 @@ export function EditService({
         
         // Get max edits based on subscription
         const maxEditsForPlan = getMaxEditsForPlan(subscriptionType);
-        setMaxEdits(maxEditsForPlan);
+        setMaxEdits(normalizedPlan === 'premium' || normalizedPlan === 'enterprise' ? null : maxEditsForPlan);
 
         // SECOND: Get existing edit counts from the service table
         console.log('[service-limits] Fetching edit counts from service...');
@@ -228,10 +234,18 @@ export function EditService({
             console.log('[service-limits] RPC returned data:', rpcData[0]);
             // Only override if RPC succeeded and has valid data
             const row = rpcData[0];
+            const normalizedPlan = normalizePlanName(row.plan_type || subscriptionType);
+
             if (row.plan_type) {
               setPlanType(row.plan_type);
-              setMaxEdits(row.max_edits ?? null);
             }
+
+            if (normalizedPlan === 'premium' || normalizedPlan === 'enterprise') {
+              setMaxEdits(null);
+            } else if (row.plan_type) {
+              setMaxEdits(row.max_edits ?? getMaxEditsForPlan(row.plan_type));
+            }
+
             if (row.counts) {
               setEditCounts(row.counts as Record<string, number>);
             }
@@ -252,9 +266,10 @@ export function EditService({
             .single();
           
           const subType = vendorData?.subscription_type || 'basic';
+          const normalizedSubType = normalizePlanName(subType);
           console.log(`[service-limits] Fallback: using subscription_type "${subType}"`);
           setPlanType(subType);
-          setMaxEdits(getMaxEditsForPlan(subType));
+          setMaxEdits(normalizedSubType === 'premium' || normalizedSubType === 'enterprise' ? null : getMaxEditsForPlan(subType));
           
           // Try to get edit counts one more time
           const { data: serviceData } = await supabase
@@ -283,7 +298,7 @@ export function EditService({
   }, [serviceId, vendorId, isOpen, supabase]);
 
   // ─── Helpers ──────────────────────────────────────────────────────────
-  const isUnlimited = maxEdits === null;
+  const isUnlimited = maxEdits === null || ['premium', 'enterprise'].includes(normalizePlanName(planType));
 
   const canEditField = (field: string): boolean => {
     if (!LIMITED_SERVICE_FIELDS.includes(field)) return true;

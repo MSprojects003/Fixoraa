@@ -83,6 +83,8 @@ const LIMITED_PRODUCT_FIELDS = [
   'image_2',
 ];
 
+const normalizePlanName = (plan: string): string => (plan || 'basic').toLowerCase();
+
 export function EditProduct({
   isOpen,
   onOpenChange,
@@ -221,9 +223,16 @@ export function EditProduct({
         if (cancelled) return;
 
         if (row) {
+          const normalizedPlan = normalizePlanName(row.plan_type || 'basic');
           console.log(`[product-limits] loaded: plan_type=${row.plan_type} max_edits=${row.max_edits} counts=`, row.counts);
           setPlanType(row.plan_type || 'basic');
-          setMaxEdits(row.max_edits ?? null);
+
+          if (normalizedPlan === 'premium' || normalizedPlan === 'enterprise') {
+            setMaxEdits(null);
+          } else {
+            setMaxEdits(row.max_edits ?? 2);
+          }
+
           setEditCounts((row.counts as Record<string, number>) || {});
         } else {
           console.warn('[product-limits] no row returned, defaulting to basic/2/empty');

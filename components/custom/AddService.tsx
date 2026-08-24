@@ -160,12 +160,15 @@ export function AddService({
 
   const onSubmit = async (data: ServiceFormValues) => {
     if (!vendorId) {
-      toast.error("Vendor ID not found. Please complete your profile first.");
+      toast.error("Please complete Account settings 100%");
       return;
     }
 
-    if (!vendorCategory) {
-      toast.error("Vendor category not found. Please complete your profile first.");
+    const normalizedVendorCategory = (vendorCategory || "").trim();
+    const isMissingVendorCategory = !normalizedVendorCategory || normalizedVendorCategory.toLowerCase() === "category";
+
+    if (isMissingVendorCategory) {
+      toast.error("Please complete Account settings 100%");
       return;
     }
 
