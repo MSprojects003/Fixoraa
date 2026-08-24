@@ -54,6 +54,8 @@ const EDIT_LIMITS = {
   premium: { maxEdits: Infinity, label: "Premium", color: "text-amber-600" },
 };
 
+const VO_CERTIFICATE_BUCKET = "VO_certificate";
+
 // Fields that should NOT have edit limits (verification fields)
 const UNLIMITED_FIELDS = [
   "nic_front",
@@ -1291,7 +1293,7 @@ export function AccountSheet({ isOpen, onOpenChange }: AccountSheetProps) {
                   ref={voCertificateInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleImageUploadWithTracking(e, "VO_certificate", "vo_certificate")}
+                  onChange={(e) => handleImageUploadWithTracking(e, VO_CERTIFICATE_BUCKET, "vo_certificate")}
                   className="hidden"
                 />
                 <div>
