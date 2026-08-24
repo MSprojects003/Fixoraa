@@ -92,6 +92,14 @@ function BusinessPage() {
     return Math.min(percentage, 100);
   };
 
+  const normalizeCategoryValue = (value?: string | null) => {
+    const trimmed = value?.trim();
+    if (!trimmed || trimmed.toLowerCase() === "category") {
+      return "Category";
+    }
+    return trimmed;
+  };
+
   // Fetch vendor data
   useEffect(() => {
     const fetchVendorData = async () => {
@@ -112,7 +120,7 @@ function BusinessPage() {
             id: vendorData.id,
             name: vendorData.vendor_name || "Business Name",
             branch: vendorData.branch || "Branch",
-            category: vendorData.category || "Category",
+            category: normalizeCategoryValue(vendorData.category),
             address: vendorData.address || "Address",
             logo: vendorData.image1 || "",
             status: vendorData.status || "pending",
