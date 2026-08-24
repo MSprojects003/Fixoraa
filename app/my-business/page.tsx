@@ -72,7 +72,7 @@ function BusinessPage() {
         businessData.name !== "Not set") filledFields++;
     if (businessData.category && 
         businessData.category !== "Not set" && 
-        businessData.category !== "Category") filledFields++;
+        businessData.category !== "--") filledFields++;
     if (businessData.address && 
         businessData.address !== "Not set" && 
         businessData.address !== "Address") filledFields++;
@@ -94,8 +94,8 @@ function BusinessPage() {
 
   const normalizeCategoryValue = (value?: string | null) => {
     const trimmed = value?.trim();
-    if (!trimmed || trimmed.toLowerCase() === "category") {
-      return "Category";
+    if (!trimmed || trimmed.toLowerCase() === "category" || trimmed === "--") {
+      return "--";
     }
     return trimmed;
   };
@@ -143,7 +143,7 @@ function BusinessPage() {
               ? `${user.first_name} ${user.last_name}` 
               : "Complete your profile",
             branch: "Not set",
-            category: "Not set",
+            category: "--",
             address: "Not set",
             logo: "",
             status: "pending",

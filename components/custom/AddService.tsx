@@ -165,7 +165,7 @@ export function AddService({
     }
 
     const normalizedVendorCategory = (vendorCategory || "").trim();
-    const isMissingVendorCategory = !normalizedVendorCategory || normalizedVendorCategory.toLowerCase() === "category";
+    const isMissingVendorCategory = !normalizedVendorCategory || normalizedVendorCategory.toLowerCase() === "category" || normalizedVendorCategory === "--";
 
     if (isMissingVendorCategory) {
       toast.error("Please complete Account settings 100%");
@@ -266,7 +266,7 @@ export function AddService({
             <SheetDescription className="text-sm text-gray-500">
               Fill in the details below to add a new service to your business.
               <span className="block mt-1 text-xs">
-                Category: <span className="font-semibold text-black">{vendorCategory || 'Not set'}</span>
+                Category: <span className="font-semibold text-black">{vendorCategory && vendorCategory !== 'Category' && vendorCategory !== '--' ? vendorCategory : '--'}</span>
               </span>
             </SheetDescription>
             {!isCheckingCreationLimit && creationStatus && creationStatus.maxCount !== null && (
